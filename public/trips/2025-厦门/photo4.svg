@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600">
+  <defs>
+    <linearGradient id="g292" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FD79A8;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#E84393;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="600" height="600" fill="url(#g292)"/>
+  <text x="300" y="280" text-anchor="middle" font-size="64" fill="white" filter="drop-shadow(2px 2px 4px rgba(0,0,0,0.3))">🦀</text>
+  <text x="300" y="340" text-anchor="middle" font-size="28" fill="white" font-family="sans-serif" font-weight="bold" filter="drop-shadow(1px 1px 2px rgba(0,0,0,0.5))">海鲜大排档</text>
+</svg>

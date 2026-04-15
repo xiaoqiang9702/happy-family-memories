@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm create:*)",
+      "Bash(cp -r /Users/shenjieqiang/Desktop/happy-family-temp/* /Users/shenjieqiang/Desktop/快乐一家人/)",
+      "Bash(cp /Users/shenjieqiang/Desktop/happy-family-temp/.gitignore /Users/shenjieqiang/Desktop/快乐一家人/)",
+      "Bash(rm -rf /Users/shenjieqiang/Desktop/happy-family-temp)",
+      "Bash(npm install:*)",
+      "Bash(cat)",
+      "Bash(python3 /tmp/gen_placeholder.py)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(python3 /tmp/gen_icons.py)",
+      "Bash(python3 /tmp/gen_more_svgs.py)",
+      "Bash(git init:*)",
+      "Bash(npm run:*)",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "mcp__Claude_in_Chrome__navigate",
+      "mcp__Claude_in_Chrome__javascript_tool",
+      "mcp__Claude_in_Chrome__computer",
+      "Bash(sips --help)",
+      "Bash(gh auth:*)",
+      "Bash(git config:*)",
+      "Bash(brew install:*)",
+      "Bash(curl -fsSL https://github.com/cli/cli/releases/download/v2.67.0/gh_2.67.0_macOS_arm64.zip -o /tmp/gh.zip)",
+      "Bash(unzip -o /tmp/gh.zip -d /tmp/gh)",
+      "Bash(sudo cp:*)",
+      "Bash(gh --version)",
+      "Bash(export PATH=\"/tmp/gh/gh_2.67.0_macOS_arm64/bin:$PATH\")",
+      "Bash(gh repo:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}

@@ -1,0 +1,108 @@
+{
+  "password": "801172",
+  "trips": [
+    {
+      "id": "2026-disney",
+      "title": "上海迪士尼之旅",
+      "date": "2026-02-07",
+      "year": 2026,
+      "cover": "/trips/202602-迪斯尼/IMG_9739.JPG",
+      "description": "春节全家去了上海迪士尼乐园！和米奇新年花车合影，逛了疯狂动物城，看了头脑特工队，还有城堡灯光秀和烟花表演，太震撼了！孩子们玩得特别开心，大人也仿佛回到了童年。",
+      "photos": [
+        { "src": "/trips/202602-迪斯尼/CF8FA777-AEBB-4D52-A1FC-63E5759DC235.jpg", "caption": "新年花车合影" },
+        { "src": "/trips/202602-迪斯尼/IMG_9487.JPG", "caption": "和米奇拜年" },
+        { "src": "/trips/202602-迪斯尼/IMG_9490.JPG", "caption": "全家福" },
+        { "src": "/trips/202602-迪斯尼/IMG_9507.JPG", "caption": "新春大合照" },
+        { "src": "/trips/202602-迪斯尼/IMG_9563.JPG", "caption": "疯狂动物城" },
+        { "src": "/trips/202602-迪斯尼/IMG_9593.JPG", "caption": "冰雪奇缘" },
+        { "src": "/trips/202602-迪斯尼/IMG_9669.JPG", "caption": "头脑特工队" },
+        { "src": "/trips/202602-迪斯尼/IMG_9683.JPG", "caption": "青春变形记" },
+        { "src": "/trips/202602-迪斯尼/IMG_9718.JPG", "caption": "城堡前合影" },
+        { "src": "/trips/202602-迪斯尼/IMG_9739.JPG", "caption": "城堡灯光秀" },
+        { "src": "/trips/202602-迪斯尼/IMG_9750.JPG", "caption": "城堡水幕光影" },
+        { "src": "/trips/202602-迪斯尼/IMG_9789.JPG", "caption": "烟花表演" }
+      ],
+      "videos": []
+    },
+    {
+      "id": "2025-xiamen",
+      "title": "厦门之旅",
+      "date": "2025-02-01",
+      "year": 2025,
+      "cover": "/trips/2025-厦门/cover.svg",
+      "description": "春节去了厦门，在鼓浪屿漫步，去南普陀寺祈福，还骑车环岛路看海。厦门的小吃太好吃了，沙茶面、海蛎煎，全家都吃撑了！",
+      "photos": [
+        { "src": "/trips/2025-厦门/photo1.svg", "caption": "鼓浪屿" },
+        { "src": "/trips/2025-厦门/photo2.svg", "caption": "南普陀寺" },
+        { "src": "/trips/2025-厦门/photo3.svg", "caption": "厦门大学" },
+        { "src": "/trips/2025-厦门/photo4.svg", "caption": "海鲜大排档" },
+        { "src": "/trips/2025-厦门/photo5.svg", "caption": "环岛路骑行" }
+      ],
+      "videos": [
+        { "src": "/trips/2025-厦门/video1.mp4", "title": "鼓浪屿漫步" }
+      ]
+    },
+    {
+      "id": "2024-sanya",
+      "title": "三亚之旅",
+      "date": "2024-01-20",
+      "year": 2024,
+      "cover": "/trips/2024-三亚/cover.svg",
+      "description": "全家人一起去三亚过年，阳光沙滩，快乐无比！在亚龙湾看日出，天涯海角拍合影，还有海鲜大餐，每一刻都值得回忆。",
+      "photos": [
+        { "src": "/trips/2024-三亚/photo1.svg", "caption": "沙滩合影" },
+        { "src": "/trips/2024-三亚/photo2.svg", "caption": "海边日落" },
+        { "src": "/trips/2024-三亚/photo3.svg", "caption": "天涯海角" },
+        { "src": "/trips/2024-三亚/photo4.svg", "caption": "海鲜大餐" }
+      ],
+      "videos": [
+        { "src": "/trips/2024-三亚/video1.mp4", "title": "海边嬉戏" }
+      ]
+    },
+    {
+      "id": "2023-yunnan",
+      "title": "云南之旅",
+      "date": "2023-07-15",
+      "year": 2023,
+      "cover": "/trips/2023-云南/cover.svg",
+      "description": "暑假去了云南，看了洱海、丽江古城、玉龙雪山。高原的蓝天白云太美了，全家人都很开心。",
+      "photos": [
+        { "src": "/trips/2023-云南/photo1.svg", "caption": "洱海边" },
+        { "src": "/trips/2023-云南/photo2.svg", "caption": "丽江古城" },
+        { "src": "/trips/2023-云南/photo3.svg", "caption": "玉龙雪山" }
+      ],
+      "videos": []
+    },
+    {
+      "id": "2023-beijing",
+      "title": "北京之旅",
+      "date": "2023-04-05",
+      "year": 2023,
+      "cover": "/trips/2023-北京/cover.svg",
+      "description": "清明节带爸妈去了北京，爬了长城、逛了故宫、吃了烤鸭。爸妈第一次去天安门广场，特别激动，拍了好多照片。",
+      "photos": [
+        { "src": "/trips/2023-北京/photo1.svg", "caption": "故宫太和殿" },
+        { "src": "/trips/2023-北京/photo2.svg", "caption": "长城" },
+        { "src": "/trips/2023-北京/photo3.svg", "caption": "天安门广场" },
+        { "src": "/trips/2023-北京/photo4.svg", "caption": "颐和园" }
+      ],
+      "videos": [
+        { "src": "/trips/2023-北京/video1.mp4", "title": "长城登顶" }
+      ]
+    },
+    {
+      "id": "2022-hangzhou",
+      "title": "杭州之旅",
+      "date": "2022-10-02",
+      "year": 2022,
+      "cover": "/trips/2022-杭州/cover.svg",
+      "description": "国庆假期去了杭州，泛舟西湖、品龙井茶、游灵隐寺。秋天的西湖特别美，桂花飘香，令人陶醉。",
+      "photos": [
+        { "src": "/trips/2022-杭州/photo1.svg", "caption": "泛舟西湖" },
+        { "src": "/trips/2022-杭州/photo2.svg", "caption": "灵隐寺" },
+        { "src": "/trips/2022-杭州/photo3.svg", "caption": "龙井茶园" }
+      ],
+      "videos": []
+    }
+  ]
+}

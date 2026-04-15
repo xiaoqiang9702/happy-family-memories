@@ -1,0 +1,22 @@
+{
+  "name": "快乐一家人 - 家庭旅行回忆",
+  "short_name": "快乐一家人",
+  "description": "记录每一段温暖的旅程",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fdf8f0",
+  "theme_color": "#b8860b",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
