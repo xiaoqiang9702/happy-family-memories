@@ -27,7 +27,12 @@
       "Bash(gh --version)",
       "Bash(export PATH=\"/tmp/gh/gh_2.67.0_macOS_arm64/bin:$PATH\")",
       "Bash(gh repo:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git rm:*)",
+      "Bash(git commit -m ':*)",
+      "Bash(git remote:*)",
+      "Bash(git push:*)",
+      "WebFetch(domain:happy-family-memories.vercel.app)"
     ]
   }
 }
