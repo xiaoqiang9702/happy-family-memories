@@ -301,6 +301,85 @@ export default function AdminPage() {
     setSaving(false)
   }
 
+  // Fetch existing image from URL and convert to compressed base64
+  const urlToCompressedBase64 = async (url: string): Promise<string | null> => {
+    try {
+      const resp = await fetch(url)
+      if (!resp.ok) return null
+      const blob = await resp.blob()
+      // Convert blob to dataURL via FileReader, then compress via canvas
+      return new Promise((resolve) => {
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          const img = new Image()
+          img.onload = () => {
+            const canvas = document.createElement('canvas')
+            const maxW = 512
+            let { width, height } = img
+            if (width > maxW) {
+              height = (height * maxW) / width
+              width = maxW
+            }
+            canvas.width = width
+            canvas.height = height
+            canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
+            resolve(canvas.toDataURL('image/jpeg', 0.7).split(',')[1])
+          }
+          img.onerror = () => resolve(null)
+          img.src = e.target!.result as string
+        }
+        reader.onerror = () => resolve(null)
+        reader.readAsDataURL(blob)
+      })
+    } catch {
+      return null
+    }
+  }
+
+  // AI-caption a single existing photo
+  const aiCaptionExisting = async (photoIndex: number) => {
+    if (!editingTrip) return
+    const photo = editingTrip.photos[photoIndex]
+    setSaving(true)
+    setMessage('AI 识别中...')
+    try {
+      const base64 = await urlToCompressedBase64(photo.src)
+      if (!base64) throw new Error('无法读取图片')
+      const caption = await aiCaption(base64)
+      if (!caption) throw new Error('AI 无返回')
+      const newPhotos = editingTrip.photos.map((p, i) =>
+        i === photoIndex ? { ...p, caption } : p
+      )
+      setEditingTrip({ ...editingTrip, photos: newPhotos })
+      setMessage('识别完成')
+    } catch (err: any) {
+      setMessage(`失败: ${err.message}`)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // AI-caption ALL existing photos
+  const aiCaptionAllExisting = async () => {
+    if (!editingTrip || editingTrip.photos.length === 0) return
+    setSaving(true)
+    const newPhotos = [...editingTrip.photos]
+    for (let i = 0; i < newPhotos.length; i++) {
+      setMessage(`AI 识别已有照片 ${i + 1}/${newPhotos.length}...`)
+      try {
+        const base64 = await urlToCompressedBase64(newPhotos[i].src)
+        if (!base64) continue
+        const caption = await aiCaption(base64)
+        if (caption) {
+          newPhotos[i] = { ...newPhotos[i], caption }
+          setEditingTrip({ ...editingTrip, photos: newPhotos })
+        }
+      } catch {}
+    }
+    setMessage('全部识别完成')
+    setSaving(false)
+  }
+
   const compressImage = (file: File, maxWidth = 1600, quality = 0.8): Promise<string> =>
     new Promise((resolve) => {
       const reader = new FileReader()
@@ -563,9 +642,18 @@ export default function AdminPage() {
           {/* existing photos */}
           {editingTrip.photos.length > 0 && (
             <div>
-              <label className="block text-lg font-bold text-warm-700 mb-2">
-                已有照片 ({editingTrip.photos.length})
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-lg font-bold text-warm-700">
+                  已有照片 ({editingTrip.photos.length})
+                </label>
+                <button
+                  onClick={aiCaptionAllExisting}
+                  disabled={saving}
+                  className="text-sm px-3 py-1.5 bg-accent-blue/40 text-warm-800 rounded-lg active:bg-accent-blue/60 disabled:opacity-50 min-h-[36px] font-medium"
+                >
+                  🪄 AI 识别全部
+                </button>
+              </div>
               <div className="space-y-3">
                 {editingTrip.photos.map((photo, i) => (
                   <div key={i} className="flex gap-3 items-center bg-white rounded-2xl p-3 shadow-soft">
@@ -582,13 +670,20 @@ export default function AdminPage() {
                         onChange={(e) => updatePhotoCaption(i, e.target.value)}
                         className="w-full text-base px-3 py-2 rounded-xl border border-warm-200 outline-none"
                       />
-                      <div className="flex gap-2 mt-2">
+                      <div className="flex gap-2 mt-2 flex-wrap">
                         <button
                           onClick={() => setEditingTrip({ ...editingTrip, cover: photo.src })}
-                          disabled={photo.src === editingTrip.cover}
+                          disabled={photo.src === editingTrip.cover || saving}
                           className="text-sm px-3 py-1 bg-warm-100 text-warm-700 rounded-lg disabled:opacity-50"
                         >
                           设为封面
+                        </button>
+                        <button
+                          onClick={() => aiCaptionExisting(i)}
+                          disabled={saving}
+                          className="text-sm px-3 py-1 bg-accent-blue/40 text-warm-800 rounded-lg disabled:opacity-50"
+                        >
+                          🪄 AI 识别
                         </button>
                       </div>
                     </div>
