@@ -43,7 +43,9 @@
       "Bash(git commit -m ' *)",
       "Bash(git commit *)",
       "Bash(curl -sS -X POST https://jjvvhome.com/api/admin-login -H \"Content-Type: application/json\" -d '{\"password\":\"wrong\"}' -w \"\\\\nHTTP_STATUS:%{http_code}\\\\n\")",
-      "Bash(curl -sS -X POST https://happy-family-memories.xiaoqiang9702.workers.dev/api/admin-login -H \"Content-Type: application/json\" -d '{\"password\":\"test\"}' -w \"\\\\nHTTP_STATUS:%{http_code}\\\\n\")"
+      "Bash(curl -sS -X POST https://happy-family-memories.xiaoqiang9702.workers.dev/api/admin-login -H \"Content-Type: application/json\" -d '{\"password\":\"test\"}' -w \"\\\\nHTTP_STATUS:%{http_code}\\\\n\")",
+      "Bash(curl -sS -X POST https://jjvvhome.com/api/admin-login -H \"Content-Type: application/json\" -d '{\"password\":\"test\"}' -w \"\\\\nHTTP_STATUS:%{http_code}\\\\n\")",
+      "Bash(git fetch *)"
     ]
   }
 }
