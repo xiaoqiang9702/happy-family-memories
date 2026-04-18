@@ -32,7 +32,15 @@
       "Bash(git commit -m ':*)",
       "Bash(git remote:*)",
       "Bash(git push:*)",
-      "WebFetch(domain:happy-family-memories.vercel.app)"
+      "WebFetch(domain:happy-family-memories.vercel.app)",
+      "Bash(git pull:*)",
+      "Bash(git stash:*)",
+      "WebFetch(domain:happy-family-memories.xiaoqiang9702.workers.dev)",
+      "WebFetch(domain:jjvvhome.com)",
+      "Bash(curl -s -X POST https://jjvvhome.com/api/admin-login -H \"Content-Type: application/json\" -d '{\"password\":\"pz5t4ksz\"}')",
+      "Bash(curl -v -X POST https://jjvvhome.com/api/admin-login -H \"Content-Type: application/json\" -d '{\"password\":\"pz5t4ksz\"}')",
+      "Bash(curl -s -I https://jjvvhome.com/api/admin-login)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }
