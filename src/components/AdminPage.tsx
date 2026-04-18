@@ -222,6 +222,85 @@ export default function AdminPage() {
     )
   }
 
+  // AI-generate caption for a single image (base64)
+  const aiCaption = async (imageBase64: string): Promise<string | null> => {
+    try {
+      const resp = await fetch('/api/ai-caption', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-password': adminToken,
+        },
+        body: JSON.stringify({ image: imageBase64 }),
+      })
+      if (!resp.ok) return null
+      const data = await resp.json()
+      return data.caption || null
+    } catch {
+      return null
+    }
+  }
+
+  // AI generate trip summary
+  const generateSummary = async () => {
+    if (!editingTrip) return
+    setSaving(true)
+    setMessage('AI 正在生成简介...')
+    try {
+      const captions = [
+        ...editingTrip.photos.map((p) => p.caption),
+        ...pendingUploads.map((u) => u.caption),
+      ].filter(Boolean)
+
+      const resp = await fetch('/api/ai-summary', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-password': adminToken,
+        },
+        body: JSON.stringify({
+          title: editingTrip.title,
+          date: editingTrip.date,
+          captions,
+          existing: editingTrip.description,
+        }),
+      })
+      if (!resp.ok) {
+        const err = await resp.json()
+        throw new Error(err.error || 'AI 生成失败')
+      }
+      const data = await resp.json()
+      setEditingTrip({ ...editingTrip, description: data.summary })
+      setMessage('简介已生成，可以继续修改')
+    } catch (err: any) {
+      setMessage(`失败: ${err.message}`)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // AI-caption all pending photos
+  const aiCaptionAll = async () => {
+    if (pendingUploads.length === 0) return
+    setSaving(true)
+    for (let i = 0; i < pendingUploads.length; i++) {
+      const upload = pendingUploads[i]
+      if (upload.done) continue
+      setMessage(`AI 识别照片 ${i + 1}/${pendingUploads.length}...`)
+      try {
+        const base64 = await compressImage(upload.file, 512, 0.7)
+        const caption = await aiCaption(base64)
+        if (caption) {
+          setPendingUploads((prev) =>
+            prev.map((u, idx) => (idx === i ? { ...u, caption } : u))
+          )
+        }
+      } catch {}
+    }
+    setMessage('AI 识别完成')
+    setSaving(false)
+  }
+
   const compressImage = (file: File, maxWidth = 1600, quality = 0.8): Promise<string> =>
     new Promise((resolve) => {
       const reader = new FileReader()
@@ -462,7 +541,16 @@ export default function AdminPage() {
           </div>
 
           <div>
-            <label className="block text-lg font-bold text-warm-700 mb-2">描述</label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-lg font-bold text-warm-700">描述</label>
+              <button
+                onClick={generateSummary}
+                disabled={saving || !editingTrip.title}
+                className="text-sm px-3 py-1.5 bg-accent-blue/40 text-warm-800 rounded-lg active:bg-accent-blue/60 disabled:opacity-50 min-h-[36px] font-medium"
+              >
+                🪄 AI 生成简介
+              </button>
+            </div>
             <textarea
               value={editingTrip.description}
               onChange={(e) => setEditingTrip({ ...editingTrip, description: e.target.value })}
@@ -539,6 +627,14 @@ export default function AdminPage() {
 
           {/* pending uploads */}
           {pendingUploads.length > 0 && (
+            <>
+              <button
+                onClick={aiCaptionAll}
+                disabled={saving}
+                className="w-full py-3 bg-accent-blue/40 text-warm-800 text-base font-bold rounded-2xl active:bg-accent-blue/60 disabled:opacity-50"
+              >
+                🪄 AI 识别全部照片（生成描述）
+              </button>
             <div className="space-y-3">
               {pendingUploads.map((upload, i) => (
                 <div key={i} className="flex gap-3 items-center bg-white rounded-2xl p-3 shadow-soft">
@@ -570,6 +666,7 @@ export default function AdminPage() {
                 </div>
               ))}
             </div>
+            </>
           )}
 
           {message && (

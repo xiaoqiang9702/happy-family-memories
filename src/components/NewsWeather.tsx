@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppData } from '../hooks/useAppData'
+import NewsComments from './NewsComments'
 
 interface WeatherData {
   temp: string
@@ -173,6 +174,7 @@ export default function NewsWeather() {
                       </span>
                     </div>
                     <p className="text-base text-warm-700 leading-relaxed whitespace-pre-wrap">{item.content}</p>
+                    <NewsComments newsId={item.id} comments={item.comments || []} />
                   </article>
                 ))}
             </div>

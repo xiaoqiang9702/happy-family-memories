@@ -14,11 +14,19 @@ export interface Trip {
   photos: Photo[]
   videos: Video[]
 }
+export interface Comment {
+  id: string
+  author: string
+  date: string
+  content: string
+}
+
 export interface NewsItem {
   id: string
   date: string
   title: string
   content: string
+  comments?: Comment[]
 }
 
 export interface AppData {

@@ -15,5 +15,8 @@
   "vars": {
     "GITHUB_REPO_OWNER": "xiaoqiang9702",
     "GITHUB_REPO_NAME": "happy-family-memories"
+  },
+  "ai": {
+    "binding": "AI"
   }
 }

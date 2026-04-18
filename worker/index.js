@@ -168,6 +168,104 @@ async function handleVerifyPassword(request, env) {
   }
 }
 
+// Generate a caption for a single photo using Workers AI
+async function handleAiCaption(request, env) {
+  if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
+  const password = request.headers.get('x-admin-password')
+  if (password !== env.ADMIN_PASSWORD) return json({ error: '未授权' }, 401)
+  if (!env.AI) return json({ error: 'AI 服务未配置' }, 500)
+
+  try {
+    const { image } = await request.json()
+    if (!image) return json({ error: '缺少图片数据' }, 400)
+
+    // decode base64 to bytes
+    const binary = atob(image)
+    const bytes = new Uint8Array(binary.length)
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+
+    const result = await env.AI.run('@cf/llava-hf/llava-1.5-7b-hf', {
+      image: Array.from(bytes),
+      prompt: 'Describe what you see in this photo in one short Chinese sentence, focused on the main subject, scene, or emotion. Reply ONLY in Chinese, 10-20 Chinese characters.',
+      max_tokens: 80,
+    })
+
+    let caption = (result?.description || result?.response || '').trim()
+    // clean up: remove quotes, english artifacts
+    caption = caption.replace(/^["'""]|["'""]$/g, '').trim()
+    if (!caption) caption = '美好瞬间'
+
+    return json({ caption })
+  } catch (err) {
+    return json({ error: err.message || 'AI 识别失败' }, 500)
+  }
+}
+
+// Generate a trip summary from photo captions + existing description
+async function handleAiSummary(request, env) {
+  if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
+  const password = request.headers.get('x-admin-password')
+  if (password !== env.ADMIN_PASSWORD) return json({ error: '未授权' }, 401)
+  if (!env.AI) return json({ error: 'AI 服务未配置' }, 500)
+
+  try {
+    const { title, date, captions, existing } = await request.json()
+    if (!title) return json({ error: '缺少标题' }, 400)
+
+    const captionList = (captions || []).filter(Boolean).join('、')
+    const prompt = `你是一个温暖的家庭相册文案助手。请根据以下信息，写一段50-100字的旅行简介，语气温馨自然，适合家人阅读：
+
+旅行标题：${title}
+日期：${date || '未知'}
+已有简介：${existing || '无'}
+照片关键词：${captionList || '无'}
+
+请直接写简介文字，不要加任何前缀或引号。`
+
+    const result = await env.AI.run('@cf/meta/llama-3-8b-instruct', {
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 300,
+    })
+
+    let summary = (result?.response || '').trim()
+    summary = summary.replace(/^["'""]|["'""]$/g, '').trim()
+    if (!summary) summary = `${title}，和家人一起度过的美好时光。`
+
+    return json({ summary })
+  } catch (err) {
+    return json({ error: err.message || 'AI 生成失败' }, 500)
+  }
+}
+
+// Add a comment to a news item (no auth, just site password baseline)
+async function handleComment(request, env) {
+  if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
+  if (!env.GITHUB_TOKEN || !env.GITHUB_REPO_OWNER || !env.GITHUB_REPO_NAME) {
+    return json({ error: 'GitHub 环境变量未配置' }, 500)
+  }
+  try {
+    const { newsId, author, content: text } = await request.json()
+    if (!newsId || !author || !text) return json({ error: '缺少参数' }, 400)
+    if (author.length > 20 || text.length > 500) return json({ error: '内容过长' }, 400)
+
+    const { content, sha } = await getTripsFile(env)
+    if (!content.news) content.news = []
+    const news = content.news.find((n) => n.id === newsId)
+    if (!news) return json({ error: '新闻不存在' }, 404)
+    if (!news.comments) news.comments = []
+    news.comments.push({
+      id: `c-${Date.now()}`,
+      author: author.trim(),
+      date: new Date().toISOString(),
+      content: text.trim(),
+    })
+    await updateTripsFile(env, content, sha)
+    return json({ success: true, comments: news.comments })
+  } catch (err) {
+    return json({ error: err.message }, 500)
+  }
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url)
@@ -177,6 +275,9 @@ export default {
     if (url.pathname === '/api/upload') return handleUpload(request, env)
     if (url.pathname === '/api/public-data') return handlePublicData(request, env)
     if (url.pathname === '/api/verify-password') return handleVerifyPassword(request, env)
+    if (url.pathname === '/api/ai-caption') return handleAiCaption(request, env)
+    if (url.pathname === '/api/ai-summary') return handleAiSummary(request, env)
+    if (url.pathname === '/api/comment') return handleComment(request, env)
 
     return env.ASSETS.fetch(request)
   },
