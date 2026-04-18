@@ -1,6 +1,13 @@
 {
   "password": "801172",
-  "news": [],
+  "news": [
+    {
+      "id": "news-1776501318533",
+      "date": "2026-04-18",
+      "title": "期中考试马上来临",
+      "content": "下个礼拜文文要期中考试了，预祝考试顺利，再创辉煌"
+    }
+  ],
   "trips": [
     {
       "id": "2026-disney",
@@ -57,43 +64,18 @@
         {
           "src": "/trips/202602-迪斯尼/IMG_9789.JPG",
           "caption": "烟花表演"
-        },
-        {
-          "src": "/trips/202602-上海迪士尼之旅/photo_1776270408197_0.jpg",
-          "caption": "e32d7607fc29b6e7ef087ce2b317162e"
-        },
-        {
-          "src": "/trips/202602-上海迪士尼之旅啦啦啦/photo_1776483448785_0.jpg",
-          "caption": "IMG_0157"
         }
       ],
       "videos": []
     },
     {
       "id": "2024-sanya",
-      "title": "三亚之旅",
-      "date": "2024-01-20",
-      "year": 2024,
+      "title": "26年春节绍兴",
+      "date": "2026-02-26",
+      "year": 2026,
       "cover": "/trips/2024-三亚/cover.svg",
-      "description": "全家人一起去三亚过年，阳光沙滩，快乐无比！在亚龙湾看日出，天涯海角拍合影，还有海鲜大餐，每一刻都值得回忆。",
-      "photos": [
-        {
-          "src": "/trips/2024-三亚/photo1.svg",
-          "caption": "沙滩合影"
-        },
-        {
-          "src": "/trips/2024-三亚/photo2.svg",
-          "caption": "海边日落"
-        },
-        {
-          "src": "/trips/2024-三亚/photo3.svg",
-          "caption": "天涯海角"
-        },
-        {
-          "src": "/trips/2024-三亚/photo4.svg",
-          "caption": "海鲜大餐"
-        }
-      ],
+      "description": "春节在绍兴",
+      "photos": [],
       "videos": [
         {
           "src": "/trips/2024-三亚/video1.mp4",
