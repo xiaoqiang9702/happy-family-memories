@@ -1,8 +1,10 @@
 import { useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import TripCard from './TripCard'
 import tripsData from '../data/trips.json'
 
 export default function TripTimeline() {
+  const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const allTrips = tripsData.trips
 
@@ -42,25 +44,29 @@ export default function TripTimeline() {
 
       <div className="max-w-3xl mx-auto px-4 pt-6">
         {/* stats summary */}
-        <div className="bg-gradient-to-r from-warm-100 to-warm-50 rounded-2xl p-5 mb-5 border border-warm-200">
-          <p className="text-center text-lg text-warm-700 mb-3">
+        <div className="bg-gradient-to-br from-warm-100 via-warm-50 to-white rounded-3xl p-6 mb-5 border border-warm-200 shadow-soft">
+          <p className="text-center text-lg text-warm-700 mb-4">
             每一次旅行，都是一段美好的回忆 ✨
           </p>
-          <div className="flex justify-center gap-6">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-warm-600">{allTrips.length}</div>
-              <div className="text-sm text-warm-500">次旅行</div>
+          <div className="flex justify-center gap-2">
+            <div className="flex-1 text-center py-2">
+              <div className="text-3xl font-bold text-warm-600">{allTrips.length}</div>
+              <div className="text-sm text-warm-500 mt-1">次旅行</div>
             </div>
-            <div className="w-px bg-warm-200" />
-            <div className="text-center">
-              <div className="text-2xl font-bold text-warm-600">{totalPhotos}</div>
-              <div className="text-sm text-warm-500">张照片</div>
-            </div>
-            <div className="w-px bg-warm-200" />
-            <div className="text-center">
-              <div className="text-2xl font-bold text-warm-600">{totalVideos}</div>
-              <div className="text-sm text-warm-500">个视频</div>
-            </div>
+            <button
+              onClick={() => navigate('/photos')}
+              className="flex-1 text-center py-2 rounded-2xl active:bg-warm-100 transition-colors min-h-[72px]"
+            >
+              <div className="text-3xl font-bold text-warm-600">{totalPhotos}</div>
+              <div className="text-sm text-warm-500 mt-1">张照片 →</div>
+            </button>
+            <button
+              onClick={() => navigate('/videos')}
+              className="flex-1 text-center py-2 rounded-2xl active:bg-warm-100 transition-colors min-h-[72px]"
+            >
+              <div className="text-3xl font-bold text-warm-600">{totalVideos}</div>
+              <div className="text-sm text-warm-500 mt-1">个视频 →</div>
+            </button>
           </div>
         </div>
 

@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import tripsData from '../data/trips.json'
 import PhotoGallery from './PhotoGallery'
 import VideoPlayer from './VideoPlayer'
+import TripReactions from './TripReactions'
 
 export default function TripDetail() {
   const { id } = useParams<{ id: string }>()
@@ -72,8 +73,13 @@ export default function TripDetail() {
         </div>
 
         {/* description */}
-        <div className="mb-6 bg-white rounded-2xl p-5 shadow-sm animate-detail-in" style={{ animationDelay: '0.1s' }}>
+        <div className="mb-4 bg-white rounded-2xl p-5 shadow-sm animate-detail-in" style={{ animationDelay: '0.1s' }}>
           <p className="text-lg text-gray-700 leading-relaxed">{trip.description}</p>
+        </div>
+
+        {/* reactions */}
+        <div className="mb-6 animate-detail-in" style={{ animationDelay: '0.15s' }}>
+          <TripReactions tripId={trip.id} />
         </div>
 
         {/* photos */}

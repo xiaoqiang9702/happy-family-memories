@@ -76,9 +76,10 @@ async function handleTrips(request, env) {
       return json(content)
     }
     if (request.method === 'PUT') {
-      const { trips } = await request.json()
+      const body = await request.json()
       const { content, sha } = await getTripsFile(env)
-      content.trips = trips
+      if (body.trips !== undefined) content.trips = body.trips
+      if (body.news !== undefined) content.news = body.news
       await updateTripsFile(env, content, sha)
       return json({ success: true, message: '保存成功，网站将在约1分钟后自动更新' })
     }

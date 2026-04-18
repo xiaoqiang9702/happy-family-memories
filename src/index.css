@@ -5,10 +5,19 @@
   --color-warm-100: #f5ead6;
   --color-warm-200: #e8d5b0;
   --color-warm-300: #d4b896;
+  --color-warm-400: #c49d6a;
   --color-warm-500: #b8860b;
   --color-warm-600: #966d09;
   --color-warm-700: #6b4e06;
   --color-warm-800: #3d2d04;
+
+  --color-accent-pink: #ffa1a1;
+  --color-accent-blue: #a1c9ff;
+  --color-accent-green: #9fd8b1;
+
+  --shadow-soft: 0 4px 20px rgba(107, 78, 6, 0.08);
+  --shadow-card: 0 2px 12px rgba(107, 78, 6, 0.1);
+  --shadow-warm: 0 8px 32px rgba(184, 134, 11, 0.12);
 }
 
 * {
@@ -31,6 +40,7 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
+  min-height: 100dvh;
   overflow-x: hidden;
 }
 
@@ -38,6 +48,12 @@ button, a, input {
   min-height: 48px;
   font-size: 1rem;
 }
+
+/* safe area support for iPhone notch / Huawei hole punch */
+.safe-top { padding-top: env(safe-area-inset-top); }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+.safe-left { padding-left: env(safe-area-inset-left); }
+.safe-right { padding-right: env(safe-area-inset-right); }
 
 .hide-scrollbar::-webkit-scrollbar { display: none; }
 .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -52,4 +68,16 @@ button, a, input {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
+}
+
+/* modern card style */
+.card-modern {
+  background: white;
+  border-radius: 1.5rem;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.3s ease, transform 0.2s ease;
+}
+.card-modern:hover {
+  box-shadow: var(--shadow-warm);
+  transform: translateY(-2px);
 }
