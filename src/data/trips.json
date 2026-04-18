@@ -10,6 +10,21 @@
   ],
   "trips": [
     {
+      "id": "2026-春节在绍兴",
+      "title": "春节在绍兴",
+      "date": "2026-02-28",
+      "year": 2026,
+      "cover": "/trips/202602-春节在绍兴/photo_1776502596494_0.jpg",
+      "description": "春节在绍兴玩",
+      "photos": [
+        {
+          "src": "/trips/202602-春节在绍兴/photo_1776502596494_0.jpg",
+          "caption": "照片 1"
+        }
+      ],
+      "videos": []
+    },
+    {
       "id": "2026-disney",
       "title": "上海迪士尼之旅啦啦啦",
       "date": "2026-02-07",
@@ -64,99 +79,6 @@
         {
           "src": "/trips/202602-迪斯尼/IMG_9789.JPG",
           "caption": "烟花表演"
-        }
-      ],
-      "videos": []
-    },
-    {
-      "id": "2024-sanya",
-      "title": "26年春节绍兴",
-      "date": "2026-02-26",
-      "year": 2026,
-      "cover": "/trips/2024-三亚/cover.svg",
-      "description": "春节在绍兴",
-      "photos": [],
-      "videos": [
-        {
-          "src": "/trips/2024-三亚/video1.mp4",
-          "title": "海边嬉戏"
-        }
-      ]
-    },
-    {
-      "id": "2023-yunnan",
-      "title": "云南之旅",
-      "date": "2023-07-15",
-      "year": 2023,
-      "cover": "/trips/2023-云南/cover.svg",
-      "description": "暑假去了云南，看了洱海、丽江古城、玉龙雪山。高原的蓝天白云太美了，全家人都很开心。",
-      "photos": [
-        {
-          "src": "/trips/2023-云南/photo1.svg",
-          "caption": "洱海边"
-        },
-        {
-          "src": "/trips/2023-云南/photo2.svg",
-          "caption": "丽江古城"
-        },
-        {
-          "src": "/trips/2023-云南/photo3.svg",
-          "caption": "玉龙雪山"
-        }
-      ],
-      "videos": []
-    },
-    {
-      "id": "2023-beijing",
-      "title": "北京之旅",
-      "date": "2023-04-05",
-      "year": 2023,
-      "cover": "/trips/2023-北京/cover.svg",
-      "description": "清明节带爸妈去了北京，爬了长城、逛了故宫、吃了烤鸭。爸妈第一次去天安门广场，特别激动，拍了好多照片。",
-      "photos": [
-        {
-          "src": "/trips/2023-北京/photo1.svg",
-          "caption": "故宫太和殿"
-        },
-        {
-          "src": "/trips/2023-北京/photo2.svg",
-          "caption": "长城"
-        },
-        {
-          "src": "/trips/2023-北京/photo3.svg",
-          "caption": "天安门广场"
-        },
-        {
-          "src": "/trips/2023-北京/photo4.svg",
-          "caption": "颐和园"
-        }
-      ],
-      "videos": [
-        {
-          "src": "/trips/2023-北京/video1.mp4",
-          "title": "长城登顶"
-        }
-      ]
-    },
-    {
-      "id": "2022-hangzhou",
-      "title": "杭州之旅",
-      "date": "2022-10-02",
-      "year": 2022,
-      "cover": "/trips/2022-杭州/cover.svg",
-      "description": "国庆假期去了杭州，泛舟西湖、品龙井茶、游灵隐寺。秋天的西湖特别美，桂花飘香，令人陶醉。",
-      "photos": [
-        {
-          "src": "/trips/2022-杭州/photo1.svg",
-          "caption": "泛舟西湖"
-        },
-        {
-          "src": "/trips/2022-杭州/photo2.svg",
-          "caption": "灵隐寺"
-        },
-        {
-          "src": "/trips/2022-杭州/photo3.svg",
-          "caption": "龙井茶园"
         }
       ],
       "videos": []
