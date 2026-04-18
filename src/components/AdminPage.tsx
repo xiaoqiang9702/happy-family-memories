@@ -429,10 +429,23 @@ export default function AdminPage() {
       setPendingUploads((prev) =>
         prev.map((u, idx) => (idx === i ? { ...u, uploading: true } : u))
       )
-      setMessage(`正在上传照片 ${i + 1}/${pendingUploads.length}...`)
 
       try {
         const base64 = await compressImage(upload.file)
+
+        // AI auto-caption if user didn't customize (still auto-generated default)
+        let finalCaption = upload.caption
+        const isAutoCaption = /^照片\s*\d+$/.test(finalCaption.trim())
+        if (isAutoCaption) {
+          setMessage(`🪄 AI 识别照片 ${i + 1}/${pendingUploads.length}...`)
+          try {
+            const smallBase64 = await compressImage(upload.file, 512, 0.7)
+            const aiResult = await aiCaption(smallBase64)
+            if (aiResult) finalCaption = aiResult
+          } catch {}
+        }
+
+        setMessage(`正在上传照片 ${i + 1}/${pendingUploads.length}...`)
         const filename = `photo_${Date.now()}_${i}.jpg`
         const resp = await fetch('/api/upload', {
           method: 'POST',
@@ -444,9 +457,9 @@ export default function AdminPage() {
         })
         if (!resp.ok) throw new Error('上传失败')
         const data = await resp.json()
-        uploadedPhotos.push({ src: data.url, caption: upload.caption })
+        uploadedPhotos.push({ src: data.url, caption: finalCaption })
         setPendingUploads((prev) =>
-          prev.map((u, idx) => (idx === i ? { ...u, uploading: false, done: true } : u))
+          prev.map((u, idx) => (idx === i ? { ...u, uploading: false, done: true, caption: finalCaption } : u))
         )
       } catch (err: any) {
         setPendingUploads((prev) =>
@@ -460,6 +473,31 @@ export default function AdminPage() {
     trip.photos = uploadedPhotos
     if (!trip.cover && uploadedPhotos.length > 0) {
       trip.cover = uploadedPhotos[0].src
+    }
+
+    // Auto-generate trip description for new trips without one
+    if (isNewTrip && !trip.description.trim() && uploadedPhotos.length > 0) {
+      setMessage('🪄 AI 正在为这次旅行生成简介...')
+      try {
+        const captions = uploadedPhotos.map((p) => p.caption).filter(Boolean)
+        const resp = await fetch('/api/ai-summary', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-password': adminToken,
+          },
+          body: JSON.stringify({
+            title: trip.title,
+            date: trip.date,
+            captions,
+            existing: '',
+          }),
+        })
+        if (resp.ok) {
+          const data = await resp.json()
+          if (data.summary) trip.description = data.summary
+        }
+      } catch {}
     }
 
     let updated: Trip[]
@@ -717,7 +755,7 @@ export default function AdminPage() {
             >
               📷 点击选择照片（支持多选）
             </button>
-            <p className="text-sm text-warm-400 mt-2 text-center">描述会自动生成，可以手动修改</p>
+            <p className="text-sm text-warm-400 mt-2 text-center">🪄 保存时会自动用 AI 识别内容生成描述，也可手动修改</p>
           </div>
 
           {/* pending uploads */}
