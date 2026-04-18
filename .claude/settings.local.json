@@ -47,7 +47,15 @@
       "Bash(curl -sS -X POST https://jjvvhome.com/api/admin-login -H \"Content-Type: application/json\" -d '{\"password\":\"test\"}' -w \"\\\\nHTTP_STATUS:%{http_code}\\\\n\")",
       "Bash(git fetch *)",
       "Bash(curl -sS -X POST https://jjvvhome.com/api/admin-login -H \"Content-Type: application/json\" -d '{\"password\":\"pz5t4ksz\"}' -w \"\\\\nHTTP_STATUS:%{http_code}\\\\n\")",
-      "Bash(curl -sS https://jjvvhome.com/api/trips -H \"x-admin-password: pz5t4ksz\" -w \"\\\\nHTTP_STATUS:%{http_code}\\\\n\")"
+      "Bash(curl -sS https://jjvvhome.com/api/trips -H \"x-admin-password: pz5t4ksz\" -w \"\\\\nHTTP_STATUS:%{http_code}\\\\n\")",
+      "Bash(curl -sS https://jjvvhome.com/ -o /tmp/page.html)",
+      "Bash(curl -sS \"https://raw.githubusercontent.com/xiaoqiang9702/happy-family-memories/main/src/data/trips.json\")",
+      "Bash(curl -sS \"https://jjvvhome.com/assets/index-fWBJoixq.js\")",
+      "Bash(curl -sS \"https://jjvvhome.com/\")",
+      "Bash(python3 -c \"import sys; d=sys.stdin.read\\(\\); import re; m=re.findall\\(r'\\\\\"title\\\\\"\\\\s*:\\\\s*\\\\\"\\([^\\\\\"]+\\)\\\\\"', d\\); print\\('\\\\n'.join\\(m[:15]\\)\\)\")",
+      "Bash(curl -sS \"https://jjvvhome.com/assets/index-fWBJoixq.js\" -o /tmp/deployed.js)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\([t['title']+'\\('+str\\(len\\(t['photos']\\)\\)+'张\\)' for t in d['trips']]\\)\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\([t['title'] for t in d['trips']]\\)\")"
     ]
   }
 }

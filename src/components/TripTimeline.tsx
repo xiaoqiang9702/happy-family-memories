@@ -1,12 +1,12 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import TripCard from './TripCard'
-import tripsData from '../data/trips.json'
+import { useAppData } from '../hooks/useAppData'
 
 export default function TripTimeline() {
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
-  const allTrips = tripsData.trips
+  const { trips: allTrips } = useAppData()
 
   const trips = useMemo(() => {
     if (!search.trim()) return allTrips

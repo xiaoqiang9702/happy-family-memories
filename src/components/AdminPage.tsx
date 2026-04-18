@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import tripsData from '../data/trips.json'
+import { useAppData } from '../hooks/useAppData'
 
 interface Photo {
   src: string
@@ -49,8 +49,9 @@ export default function AdminPage() {
   const [loginError, setLoginError] = useState('')
   const [view, setView] = useState<View>('list')
 
-  const [trips, setTrips] = useState<Trip[]>(tripsData.trips as Trip[])
-  const [news, setNews] = useState<NewsItem[]>(((tripsData as any).news || []) as NewsItem[])
+  const appData = useAppData()
+  const [trips, setTrips] = useState<Trip[]>(appData.trips as Trip[])
+  const [news, setNews] = useState<NewsItem[]>(appData.news as NewsItem[])
 
   const [editingTrip, setEditingTrip] = useState<Trip | null>(null)
   const [isNewTrip, setIsNewTrip] = useState(false)
@@ -117,6 +118,12 @@ export default function AdminPage() {
       } catch {}
     })()
   }, [])
+
+  // sync with shared app data when it changes
+  useEffect(() => {
+    if (appData.trips.length > 0) setTrips(appData.trips as Trip[])
+    setNews(appData.news as NewsItem[])
+  }, [appData.trips, appData.news])
 
   const logout = () => {
     localStorage.removeItem(ADMIN_STORAGE_KEY)
@@ -325,6 +332,8 @@ export default function AdminPage() {
       if (resp.ok) {
         const data = await resp.json()
         setMessage(data.message || '保存成功！')
+        // refresh global context so frontend sees new data immediately
+        appData.refresh()
       } else {
         const err = await resp.json()
         setMessage(`保存失败: ${err.error}`)

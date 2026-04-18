@@ -1,13 +1,14 @@
 import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
-import tripsData from '../data/trips.json'
+import { useAppData } from '../hooks/useAppData'
 import PhotoViewer from './PhotoViewer'
 
 export default function AllPhotos() {
   const navigate = useNavigate()
   const [viewerIndex, setViewerIndex] = useState<number | null>(null)
+  const { trips } = useAppData()
 
-  const allPhotos = tripsData.trips.flatMap((trip) =>
+  const allPhotos = trips.flatMap((trip) =>
     trip.photos.map((p) => ({
       src: p.src,
       caption: `${trip.title} · ${p.caption}`,

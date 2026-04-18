@@ -1,10 +1,11 @@
 import { useNavigate } from 'react-router-dom'
-import tripsData from '../data/trips.json'
+import { useAppData } from '../hooks/useAppData'
 
 export default function AllVideos() {
   const navigate = useNavigate()
+  const { trips } = useAppData()
 
-  const allVideos = tripsData.trips.flatMap((trip) =>
+  const allVideos = trips.flatMap((trip) =>
     trip.videos.map((v) => ({
       src: v.src,
       title: `${trip.title} · ${v.title}`,

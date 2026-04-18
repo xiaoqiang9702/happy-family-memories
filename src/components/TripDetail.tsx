@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useEffect } from 'react'
-import tripsData from '../data/trips.json'
+import { useAppData } from '../hooks/useAppData'
 import PhotoGallery from './PhotoGallery'
 import VideoPlayer from './VideoPlayer'
 import TripReactions from './TripReactions'
@@ -8,7 +8,8 @@ import TripReactions from './TripReactions'
 export default function TripDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const trip = tripsData.trips.find((t) => t.id === id)
+  const { trips } = useAppData()
+  const trip = trips.find((t) => t.id === id)
 
   useEffect(() => {
     window.scrollTo(0, 0)

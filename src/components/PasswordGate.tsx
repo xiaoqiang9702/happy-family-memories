@@ -1,17 +1,20 @@
 import { useState } from 'react'
 
 interface Props {
-  onLogin: (password: string) => boolean
+  onLogin: (password: string) => Promise<boolean>
 }
 
 export default function PasswordGate({ onLogin }: Props) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState(false)
   const [shaking, setShaking] = useState(false)
+  const [loading, setLoading] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const success = onLogin(password)
+    setLoading(true)
+    const success = await onLogin(password)
+    setLoading(false)
     if (!success) {
       setError(true)
       setShaking(true)
@@ -56,9 +59,10 @@ export default function PasswordGate({ onLogin }: Props) {
 
         <button
           type="submit"
-          className="w-full mt-6 py-4 bg-warm-500 hover:bg-warm-600 active:bg-warm-700 text-white text-xl font-bold rounded-2xl transition-colors shadow-md active:shadow-sm"
+          disabled={loading}
+          className="w-full mt-6 py-4 bg-warm-500 hover:bg-warm-600 active:bg-warm-700 disabled:bg-warm-300 text-white text-xl font-bold rounded-2xl transition-colors shadow-md active:shadow-sm"
         >
-          进入相册
+          {loading ? '验证中...' : '进入相册'}
         </button>
       </form>
 

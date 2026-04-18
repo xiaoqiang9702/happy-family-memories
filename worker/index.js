@@ -136,6 +136,38 @@ async function handleUpload(request, env) {
   }
 }
 
+async function handlePublicData(_request, env) {
+  if (!env.GITHUB_TOKEN || !env.GITHUB_REPO_OWNER || !env.GITHUB_REPO_NAME) {
+    return json({ error: 'GitHub 环境变量未配置' }, 500)
+  }
+  try {
+    const { content } = await getTripsFile(env)
+    // strip password, never return it publicly
+    const { password: _p, ...safe } = content
+    return new Response(JSON.stringify(safe), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, max-age=30, s-maxage=30',
+      },
+    })
+  } catch (err) {
+    return json({ error: err.message }, 500)
+  }
+}
+
+async function handleVerifyPassword(request, env) {
+  if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
+  try {
+    const { password } = await request.json()
+    const { content } = await getTripsFile(env)
+    if (password === content.password) return json({ success: true })
+    return json({ error: '密码错误' }, 401)
+  } catch (err) {
+    return json({ error: err.message }, 500)
+  }
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url)
@@ -143,6 +175,8 @@ export default {
     if (url.pathname === '/api/admin-login') return handleAdminLogin(request, env)
     if (url.pathname === '/api/trips') return handleTrips(request, env)
     if (url.pathname === '/api/upload') return handleUpload(request, env)
+    if (url.pathname === '/api/public-data') return handlePublicData(request, env)
+    if (url.pathname === '/api/verify-password') return handleVerifyPassword(request, env)
 
     return env.ASSETS.fetch(request)
   },

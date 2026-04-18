@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import tripsData from '../data/trips.json'
+import { useAppData } from '../hooks/useAppData'
 
 interface WeatherData {
   temp: string
@@ -9,13 +9,6 @@ interface WeatherData {
   humidity: string
   wind: string
   icon: string
-}
-
-interface NewsItem {
-  id: string
-  date: string
-  title: string
-  content: string
 }
 
 const ICON_MAP: Record<string, string> = {
@@ -47,7 +40,7 @@ export default function NewsWeather() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  const news: NewsItem[] = (tripsData as any).news || []
+  const { news } = useAppData()
 
   useEffect(() => {
     fetchWeather(city)
