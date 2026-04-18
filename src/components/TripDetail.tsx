@@ -36,7 +36,7 @@ export default function TripDetail() {
   })
 
   return (
-    <div className="min-h-screen bg-warm-50 pb-28">
+    <div className="min-h-screen bg-warm-50 pb-nav">
       {/* header */}
       <header className="sticky top-0 z-10 bg-warm-50/95 backdrop-blur-sm border-b border-warm-200 px-4 py-3">
         <div className="max-w-lg mx-auto flex items-center gap-3">

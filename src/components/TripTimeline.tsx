@@ -34,7 +34,7 @@ export default function TripTimeline() {
   const totalVideos = allTrips.reduce((sum, t) => sum + t.videos.length, 0)
 
   return (
-    <div className="min-h-screen bg-warm-50 pb-28">
+    <div className="min-h-screen bg-warm-50 pb-nav">
       {/* header */}
       <header className="sticky top-0 z-10 bg-warm-50/95 backdrop-blur-sm border-b border-warm-200 px-5 py-4">
         <h1 className="text-2xl font-bold text-warm-800 text-center">

@@ -19,6 +19,7 @@ export default function PhotoViewer({ photos, initialIndex, onClose }: Props) {
   const touchEndX = useRef(0)
   const touchStartY = useRef(0)
   const thumbStripRef = useRef<HTMLDivElement>(null)
+  const imageContainerRef = useRef<HTMLDivElement>(null)
 
   const photo = photos[currentIndex]
 
@@ -66,7 +67,6 @@ export default function PhotoViewer({ photos, initialIndex, onClose }: Props) {
     touchEndX.current = e.changedTouches[0].clientX
     const diffX = touchStartX.current - touchEndX.current
     const diffY = Math.abs(e.changedTouches[0].clientY - touchStartY.current)
-    // only swipe if horizontal movement is greater than vertical
     if (Math.abs(diffX) > 50 && diffY < 80) {
       if (diffX > 0) goNext()
       else goPrev()
@@ -104,9 +104,10 @@ export default function PhotoViewer({ photos, initialIndex, onClose }: Props) {
         </button>
       </div>
 
-      {/* photo container - truly centered */}
+      {/* photo container - truly centered via absolute positioning */}
       <div
-        className={`flex-1 flex items-center justify-center relative ${zoomed ? 'overflow-auto' : 'overflow-hidden'}`}
+        ref={imageContainerRef}
+        className={`flex-1 relative ${zoomed ? 'overflow-auto' : 'overflow-hidden'}`}
         style={{ minHeight: 0 }}
         onClick={() => setZoomed(!zoomed)}
       >
@@ -115,24 +116,38 @@ export default function PhotoViewer({ photos, initialIndex, onClose }: Props) {
             <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin" />
           </div>
         )}
-        <img
-          src={photo.src}
-          alt={photo.caption}
-          className={`select-none transition-all duration-300 ${loaded ? 'opacity-100' : 'opacity-0'} ${
-            zoomed
-              ? 'max-w-none max-h-none w-auto h-auto cursor-zoom-out'
-              : 'max-w-full max-h-full object-contain cursor-zoom-in'
-          }`}
-          draggable={false}
-          onLoad={() => setLoaded(true)}
-          onError={(e) => {
-            const target = e.target as HTMLImageElement
-            target.src = ''
-            target.alt = '图片加载失败'
-            setLoaded(true)
-            target.parentElement!.innerHTML = `<div class="text-white text-xl text-center">📷<br/>图片加载失败</div>`
-          }}
-        />
+        {zoomed ? (
+          <img
+            src={photo.src}
+            alt={photo.caption}
+            className={`transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'} select-none cursor-zoom-out`}
+            draggable={false}
+            onLoad={() => setLoaded(true)}
+            onError={() => setLoaded(true)}
+          />
+        ) : (
+          <img
+            src={photo.src}
+            alt={photo.caption}
+            className={`absolute inset-0 m-auto select-none transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'} cursor-zoom-in`}
+            style={{
+              maxWidth: '100%',
+              maxHeight: '100%',
+              width: 'auto',
+              height: 'auto',
+              objectFit: 'contain',
+            }}
+            draggable={false}
+            onLoad={() => setLoaded(true)}
+            onError={(e) => {
+              const target = e.target as HTMLImageElement
+              target.src = ''
+              target.alt = '图片加载失败'
+              setLoaded(true)
+              target.parentElement!.innerHTML = `<div class="absolute inset-0 flex items-center justify-center text-white text-xl text-center">📷<br/>图片加载失败</div>`
+            }}
+          />
+        )}
       </div>
 
       {/* caption */}
@@ -164,7 +179,7 @@ export default function PhotoViewer({ photos, initialIndex, onClose }: Props) {
         </div>
       )}
 
-      {/* desktop nav buttons */}
+      {/* desktop nav */}
       {photos.length > 1 && (
         <>
           <button
