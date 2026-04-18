@@ -40,7 +40,8 @@
       "Bash(curl -s -X POST https://jjvvhome.com/api/admin-login -H \"Content-Type: application/json\" -d '{\"password\":\"pz5t4ksz\"}')",
       "Bash(curl -v -X POST https://jjvvhome.com/api/admin-login -H \"Content-Type: application/json\" -d '{\"password\":\"pz5t4ksz\"}')",
       "Bash(curl -s -I https://jjvvhome.com/api/admin-login)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(git commit *)"
     ]
   }
 }
