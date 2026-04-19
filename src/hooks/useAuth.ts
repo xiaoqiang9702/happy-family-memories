@@ -10,7 +10,14 @@ export function getFamilyPassword(): string {
 
 export function useAuth() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return localStorage.getItem(STORAGE_KEY) === 'true'
+    // require BOTH auth flag AND password. Old sessions without password force re-login.
+    const authed = localStorage.getItem(STORAGE_KEY) === 'true'
+    const hasPass = !!localStorage.getItem(PASS_KEY)
+    if (authed && !hasPass) {
+      localStorage.removeItem(STORAGE_KEY)
+      return false
+    }
+    return authed
   })
 
   const login = useCallback(async (password: string): Promise<boolean> => {
