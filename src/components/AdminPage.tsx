@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { useAppData } from '../hooks/useAppData'
+import { useAppData, type FamilyMember, type HealthData } from '../hooks/useAppData'
 
 interface Photo {
   src: string
@@ -40,7 +40,7 @@ interface PendingUpload {
 
 const ADMIN_STORAGE_KEY = 'admin-auth'
 
-type View = 'list' | 'edit-trip' | 'news' | 'edit-news'
+type View = 'list' | 'edit-trip' | 'news' | 'edit-news' | 'health' | 'edit-member'
 
 export default function AdminPage() {
   const [password, setPassword] = useState('')
@@ -59,6 +59,10 @@ export default function AdminPage() {
 
   const [editingNews, setEditingNews] = useState<NewsItem | null>(null)
   const [isNewNews, setIsNewNews] = useState(false)
+
+  const [healthData, setHealthData] = useState<HealthData>(appData.health)
+  const [editingMember, setEditingMember] = useState<FamilyMember | null>(null)
+  const [isNewMember, setIsNewMember] = useState(false)
 
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
@@ -123,7 +127,8 @@ export default function AdminPage() {
   useEffect(() => {
     if (appData.trips.length > 0) setTrips(appData.trips as Trip[])
     setNews(appData.news as NewsItem[])
-  }, [appData.trips, appData.news])
+    setHealthData(appData.health)
+  }, [appData.trips, appData.news, appData.health])
 
   const logout = () => {
     localStorage.removeItem(ADMIN_STORAGE_KEY)
@@ -514,21 +519,26 @@ export default function AdminPage() {
     setView('list')
   }
 
-  const saveAll = async (updatedTrips: Trip[], updatedNews: NewsItem[]) => {
+  const saveAll = async (
+    updatedTrips: Trip[],
+    updatedNews: NewsItem[],
+    updatedHealth?: HealthData
+  ) => {
     try {
       setMessage('正在保存...')
+      const body: any = { trips: updatedTrips, news: updatedNews }
+      if (updatedHealth !== undefined) body.health = updatedHealth
       const resp = await fetch('/api/trips', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'x-admin-password': adminToken,
         },
-        body: JSON.stringify({ trips: updatedTrips, news: updatedNews }),
+        body: JSON.stringify(body),
       })
       if (resp.ok) {
         const data = await resp.json()
         setMessage(data.message || '保存成功！')
-        // refresh global context so frontend sees new data immediately
         appData.refresh()
       } else {
         const err = await resp.json()
@@ -537,6 +547,72 @@ export default function AdminPage() {
     } catch (err: any) {
       setMessage(`保存失败: ${err.message}`)
     }
+  }
+
+  // === HEALTH MEMBER MANAGEMENT ===
+
+  const startNewMember = () => {
+    setEditingMember({
+      id: `m-${Date.now()}`,
+      name: '',
+      relation: '',
+      avatar: '👤',
+      birthYear: 1960,
+      gender: 'male',
+      conditions: [],
+      medications: [],
+      allergies: [],
+      notes: '',
+    })
+    setIsNewMember(true)
+    setView('edit-member')
+    setMessage('')
+  }
+
+  const startEditMember = (m: FamilyMember) => {
+    setEditingMember({
+      ...m,
+      conditions: [...m.conditions],
+      medications: [...m.medications],
+      allergies: [...m.allergies],
+    })
+    setIsNewMember(false)
+    setView('edit-member')
+    setMessage('')
+  }
+
+  const deleteMember = async (memberId: string) => {
+    if (!confirm('确定要删除这位家人的档案吗？相关健康记录和提醒也会删除。')) return
+    const updated: HealthData = {
+      members: healthData.members.filter((m) => m.id !== memberId),
+      records: healthData.records.filter((r) => r.memberId !== memberId),
+      reminders: healthData.reminders.filter((r) => r.memberId !== memberId),
+    }
+    setHealthData(updated)
+    await saveAll(trips, news, updated)
+  }
+
+  const saveMember = async () => {
+    if (!editingMember || !editingMember.name) {
+      setMessage('请填写姓名')
+      return
+    }
+    setSaving(true)
+    // clean up empty strings in arrays
+    const cleaned: FamilyMember = {
+      ...editingMember,
+      conditions: editingMember.conditions.filter((c) => c.trim()),
+      medications: editingMember.medications.filter((c) => c.trim()),
+      allergies: editingMember.allergies.filter((c) => c.trim()),
+    }
+    const members = isNewMember
+      ? [...healthData.members, cleaned]
+      : healthData.members.map((m) => (m.id === cleaned.id ? cleaned : m))
+    const updated: HealthData = { ...healthData, members }
+    setHealthData(updated)
+    await saveAll(trips, news, updated)
+    setSaving(false)
+    setView('health')
   }
 
   // === NEWS MANAGEMENT ===
@@ -946,6 +1022,241 @@ export default function AdminPage() {
     )
   }
 
+  // EDIT MEMBER VIEW
+  if (view === 'edit-member' && editingMember) {
+    const updateArr = (key: 'conditions' | 'medications' | 'allergies', idx: number, val: string) => {
+      const arr = [...editingMember[key]]
+      arr[idx] = val
+      setEditingMember({ ...editingMember, [key]: arr })
+    }
+    const addToArr = (key: 'conditions' | 'medications' | 'allergies') => {
+      setEditingMember({ ...editingMember, [key]: [...editingMember[key], ''] })
+    }
+    const removeFromArr = (key: 'conditions' | 'medications' | 'allergies', idx: number) => {
+      setEditingMember({ ...editingMember, [key]: editingMember[key].filter((_, i) => i !== idx) })
+    }
+
+    return (
+      <div className="min-h-screen bg-warm-50 pb-8">
+        <header
+          className="sticky top-0 z-10 bg-warm-50/95 backdrop-blur-sm border-b border-warm-200 px-4 py-3"
+          style={{ paddingTop: 'calc(0.75rem + env(safe-area-inset-top))' }}
+        >
+          <div className="max-w-lg mx-auto flex items-center gap-3">
+            <button
+              onClick={() => setView('health')}
+              className="text-lg px-4 py-2 rounded-xl bg-warm-100 text-warm-700 font-medium min-h-[48px]"
+            >
+              ← 返回
+            </button>
+            <h1 className="text-xl font-bold text-warm-800">
+              {isNewMember ? '添加家人' : '编辑档案'}
+            </h1>
+          </div>
+        </header>
+
+        <div className="max-w-lg mx-auto px-4 pt-6 space-y-5">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-lg font-bold text-warm-700 mb-2">姓名 *</label>
+              <input
+                type="text"
+                value={editingMember.name}
+                onChange={(e) => setEditingMember({ ...editingMember, name: e.target.value })}
+                placeholder="爷爷"
+                className="w-full text-lg px-4 py-3 rounded-2xl border-2 border-warm-200 bg-white outline-none focus:border-warm-500"
+              />
+            </div>
+            <div>
+              <label className="block text-lg font-bold text-warm-700 mb-2">称呼</label>
+              <input
+                type="text"
+                value={editingMember.relation}
+                onChange={(e) => setEditingMember({ ...editingMember, relation: e.target.value })}
+                placeholder="爷爷"
+                className="w-full text-lg px-4 py-3 rounded-2xl border-2 border-warm-200 bg-white outline-none focus:border-warm-500"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-lg font-bold text-warm-700 mb-2">出生年</label>
+              <input
+                type="number"
+                value={editingMember.birthYear}
+                onChange={(e) => setEditingMember({ ...editingMember, birthYear: parseInt(e.target.value) || 0 })}
+                className="w-full text-lg px-4 py-3 rounded-2xl border-2 border-warm-200 bg-white outline-none focus:border-warm-500"
+              />
+            </div>
+            <div>
+              <label className="block text-lg font-bold text-warm-700 mb-2">性别</label>
+              <select
+                value={editingMember.gender}
+                onChange={(e) => setEditingMember({ ...editingMember, gender: e.target.value as 'male' | 'female' })}
+                className="w-full text-lg px-4 py-3 rounded-2xl border-2 border-warm-200 bg-white outline-none focus:border-warm-500"
+              >
+                <option value="male">男</option>
+                <option value="female">女</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-lg font-bold text-warm-700 mb-2">头像 emoji</label>
+            <div className="grid grid-cols-7 gap-2">
+              {['👴', '👵', '🧓', '🧕', '👨', '👩', '👦', '👧', '👶', '🧑', '👨‍🦳', '👩‍🦳', '👨‍🦱', '👩‍🦱'].map((e) => (
+                <button
+                  key={e}
+                  onClick={() => setEditingMember({ ...editingMember, avatar: e })}
+                  className={`text-3xl p-2 rounded-xl ${
+                    editingMember.avatar === e ? 'bg-warm-200 scale-110' : 'bg-warm-50 active:bg-warm-100'
+                  }`}
+                >
+                  {e}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* dynamic lists */}
+          {(['conditions', 'medications', 'allergies'] as const).map((key) => {
+            const labels = { conditions: '疾病史', medications: '正在服药', allergies: '过敏' }
+            const placeholders = { conditions: '如：高血压', medications: '如：氨氯地平 5mg 每天早晚', allergies: '如：青霉素' }
+            return (
+              <div key={key}>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-lg font-bold text-warm-700">{labels[key]}</label>
+                  <button
+                    onClick={() => addToArr(key)}
+                    className="text-sm px-3 py-1 bg-warm-100 text-warm-700 rounded-lg min-h-[32px]"
+                  >
+                    + 添加
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {editingMember[key].length === 0 && (
+                    <p className="text-sm text-warm-400">暂无</p>
+                  )}
+                  {editingMember[key].map((val, i) => (
+                    <div key={i} className="flex gap-2">
+                      <input
+                        type="text"
+                        value={val}
+                        onChange={(e) => updateArr(key, i, e.target.value)}
+                        placeholder={placeholders[key]}
+                        className="flex-1 text-base px-3 py-2 rounded-xl border-2 border-warm-200 bg-white outline-none focus:border-warm-500"
+                      />
+                      <button
+                        onClick={() => removeFromArr(key, i)}
+                        className="text-red-400 text-xl px-3 min-h-[44px]"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })}
+
+          <div>
+            <label className="block text-lg font-bold text-warm-700 mb-2">其他健康备注</label>
+            <textarea
+              value={editingMember.notes}
+              onChange={(e) => setEditingMember({ ...editingMember, notes: e.target.value })}
+              rows={3}
+              placeholder="例如：最近体检情况、家族病史..."
+              className="w-full text-lg px-4 py-3 rounded-2xl border-2 border-warm-200 bg-white outline-none focus:border-warm-500 resize-none"
+            />
+          </div>
+
+          {message && (
+            <div className="bg-warm-100 rounded-2xl p-4 text-center text-warm-700">{message}</div>
+          )}
+
+          <button
+            onClick={saveMember}
+            disabled={saving}
+            className="w-full py-4 bg-warm-500 disabled:bg-gray-300 text-white text-xl font-bold rounded-2xl"
+          >
+            {saving ? '保存中...' : '保存档案'}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // HEALTH LIST VIEW
+  if (view === 'health') {
+    return (
+      <div className="min-h-screen bg-warm-50 pb-8">
+        <header
+          className="sticky top-0 z-10 bg-warm-50/95 backdrop-blur-sm border-b border-warm-200 px-4 py-3"
+          style={{ paddingTop: 'calc(0.75rem + env(safe-area-inset-top))' }}
+        >
+          <div className="max-w-lg mx-auto flex items-center gap-3">
+            <button
+              onClick={() => setView('list')}
+              className="text-lg px-4 py-2 rounded-xl bg-warm-100 text-warm-700 font-medium min-h-[48px]"
+            >
+              ← 返回
+            </button>
+            <h1 className="text-xl font-bold text-warm-800">💗 健康档案管理</h1>
+          </div>
+        </header>
+
+        <div className="max-w-lg mx-auto px-4 pt-6">
+          <button
+            onClick={startNewMember}
+            className="w-full py-4 bg-warm-500 text-white text-xl font-bold rounded-2xl active:bg-warm-600 mb-4"
+          >
+            ＋ 添加家人
+          </button>
+          <p className="text-sm text-warm-500 mb-4 px-2">
+            详细录入家人的疾病史、用药、过敏等，AI 医生咨询时会据此给建议
+          </p>
+          {message && (
+            <div className="bg-warm-100 rounded-2xl p-4 text-center text-warm-700 mb-4">{message}</div>
+          )}
+          <div className="space-y-3">
+            {healthData.members.map((m) => {
+              const age = new Date().getFullYear() - m.birthYear
+              const hasInfo = m.conditions.filter(Boolean).length > 0 || m.medications.filter(Boolean).length > 0
+              return (
+                <div key={m.id} className="bg-white rounded-2xl p-4 shadow-soft">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="text-4xl">{m.avatar}</div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg font-bold text-warm-800">{m.name} <span className="text-sm text-warm-500 font-normal">({m.relation} · {age}岁)</span></h3>
+                      <p className="text-sm text-warm-500">
+                        {hasInfo ? `${m.conditions.filter(Boolean).length}项疾病 · ${m.medications.filter(Boolean).length}种药` : '未录入健康信息'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => startEditMember(m)}
+                      className="flex-1 px-4 py-2 bg-warm-100 text-warm-700 rounded-xl text-base min-h-[48px]"
+                    >
+                      编辑档案
+                    </button>
+                    <button
+                      onClick={() => deleteMember(m.id)}
+                      className="px-4 py-2 bg-red-50 text-red-500 rounded-xl text-base min-h-[48px]"
+                    >
+                      删除
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   // MAIN LIST VIEW
   return (
     <div className="min-h-screen bg-warm-50 pb-8">
@@ -976,6 +1287,13 @@ export default function AdminPage() {
             📰 新闻管理
           </button>
         </div>
+
+        <button
+          onClick={() => setView('health')}
+          className="w-full py-4 bg-gradient-to-r from-accent-pink/50 to-accent-pink/30 text-warm-800 text-lg font-bold rounded-2xl active:from-accent-pink/70"
+        >
+          💗 家人健康档案管理
+        </button>
 
         <div className="flex gap-2">
           <a

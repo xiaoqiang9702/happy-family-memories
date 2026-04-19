@@ -6,6 +6,7 @@ import TripDetail from './components/TripDetail'
 import AllPhotos from './components/AllPhotos'
 import AllVideos from './components/AllVideos'
 import HealthManagement from './components/HealthManagement'
+import HealthMember from './components/HealthMember'
 import NewsWeather from './components/NewsWeather'
 import AdminPage from './components/AdminPage'
 import BottomNav from './components/BottomNav'
@@ -33,6 +34,7 @@ export default function App() {
           <Route path="/photos" element={<AllPhotos />} />
           <Route path="/videos" element={<AllVideos />} />
           <Route path="/health" element={<HealthManagement />} />
+          <Route path="/health/:id" element={<HealthMember />} />
           <Route path="/news" element={<NewsWeather />} />
         </Routes>
       </PageTransition>

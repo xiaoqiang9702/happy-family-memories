@@ -29,16 +29,63 @@ export interface NewsItem {
   comments?: Comment[]
 }
 
+export interface FamilyMember {
+  id: string
+  name: string
+  relation: string    // 爷爷、奶奶、外公、外婆、爸爸、妈妈、女儿...
+  avatar: string      // emoji
+  birthYear: number
+  gender: 'male' | 'female'
+  conditions: string[]    // 高血压、糖尿病...
+  medications: string[]   // 氨氯地平 5mg 早晚...
+  allergies: string[]
+  notes: string           // 其他重要健康信息
+}
+
+export interface HealthRecord {
+  id: string
+  memberId: string
+  date: string            // YYYY-MM-DD
+  category: string        // 血压、血糖、体重、日志、检查报告...
+  value: string           // 数值或描述
+  notes: string
+  aiAnalysis?: string     // AI 分析结果
+  imageUrl?: string       // 上传的检查报告照片
+}
+
+export interface HealthReminder {
+  id: string
+  memberId: string
+  type: 'medication' | 'measurement' | 'exercise' | 'checkup' | 'custom'
+  title: string
+  time: string            // HH:MM
+  frequency: 'daily' | 'weekly' | 'once'
+  daysOfWeek?: number[]   // 0-6 for weekly
+  date?: string           // for once
+  enabled: boolean
+  notes?: string
+}
+
+export interface HealthData {
+  members: FamilyMember[]
+  records: HealthRecord[]
+  reminders: HealthReminder[]
+}
+
 export interface AppData {
   trips: Trip[]
   news: NewsItem[]
+  health: HealthData
   loading: boolean
   refresh: () => void
 }
 
+const emptyHealth: HealthData = { members: [], records: [], reminders: [] }
+
 const AppDataContext = createContext<AppData>({
   trips: staticData.trips as Trip[],
   news: ((staticData as any).news || []) as NewsItem[],
+  health: ((staticData as any).health || emptyHealth) as HealthData,
   loading: false,
   refresh: () => {},
 })
@@ -46,6 +93,7 @@ const AppDataContext = createContext<AppData>({
 export function AppDataProvider({ children }: { children: ReactNode }) {
   const [trips, setTrips] = useState<Trip[]>(staticData.trips as Trip[])
   const [news, setNews] = useState<NewsItem[]>(((staticData as any).news || []) as NewsItem[])
+  const [health, setHealth] = useState<HealthData>(((staticData as any).health || emptyHealth) as HealthData)
   const [loading, setLoading] = useState(true)
 
   const refresh = async () => {
@@ -56,6 +104,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         const data = await resp.json()
         if (data.trips) setTrips(data.trips)
         if (data.news) setNews(data.news)
+        if (data.health) setHealth({ ...emptyHealth, ...data.health })
       }
     } catch {
       // keep static fallback
@@ -70,7 +119,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   return createElement(
     AppDataContext.Provider,
-    { value: { trips, news, loading, refresh } },
+    { value: { trips, news, health, loading, refresh } },
     children
   )
 }

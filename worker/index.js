@@ -80,6 +80,7 @@ async function handleTrips(request, env) {
       const { content, sha } = await getTripsFile(env)
       if (body.trips !== undefined) content.trips = body.trips
       if (body.news !== undefined) content.news = body.news
+      if (body.health !== undefined) content.health = body.health
       await updateTripsFile(env, content, sha)
       return json({ success: true, message: '保存成功，网站将在约1分钟后自动更新' })
     }
@@ -237,6 +238,81 @@ async function handleAiSummary(request, env) {
   }
 }
 
+// AI family doctor consultation
+async function handleHealthChat(request, env) {
+  if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
+  if (!env.AI) return json({ error: 'AI 服务未配置' }, 500)
+
+  try {
+    const { member, message, history } = await request.json()
+    if (!member || !message) return json({ error: '缺少参数' }, 400)
+
+    const age = new Date().getFullYear() - (member.birthYear || 1980)
+    const genderStr = member.gender === 'female' ? '女' : '男'
+    const conditions = (member.conditions || []).filter(Boolean).join('、') || '无明显疾病记录'
+    const medications = (member.medications || []).filter(Boolean).join('、') || '无'
+    const allergies = (member.allergies || []).filter(Boolean).join('、') || '无'
+
+    const systemPrompt = `你是一位温暖耐心的家庭医生助手，服务对象是我的家人。请用温馨亲切的口语化中文回答（避免专业术语），120-200字。
+
+你的患者信息：
+- 姓名：${member.name}（${member.relation}）
+- 年龄：${age}岁
+- 性别：${genderStr}
+- 健康状况：${conditions}
+- 正在服药：${medications}
+- 过敏史：${allergies}
+${member.notes ? `- 其他：${member.notes}` : ''}
+
+回答要点：
+1. 先用一句话共情关心
+2. 简要分析可能原因（结合其健康状况）
+3. 给出具体可操作的建议（饮食/休息/是否需要就医）
+4. 如果症状严重或紧急，明确提醒立即就医
+5. 不要给出具体药物剂量，用药调整请咨询医生`
+
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      ...((history || []).slice(-6)),
+      { role: 'user', content: message },
+    ]
+
+    const result = await env.AI.run('@cf/meta/llama-3-8b-instruct', {
+      messages,
+      max_tokens: 500,
+    })
+
+    const reply = (result?.response || '').trim() || '抱歉，我现在无法回答，请稍后再试。'
+    return json({ reply })
+  } catch (err) {
+    return json({ error: err.message || 'AI 咨询失败' }, 500)
+  }
+}
+
+// Add a health record (no admin required - family can log)
+async function handleHealthRecord(request, env) {
+  if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
+  if (!env.GITHUB_TOKEN) return json({ error: 'GitHub 未配置' }, 500)
+  try {
+    const { record } = await request.json()
+    if (!record || !record.memberId) return json({ error: '缺少参数' }, 400)
+
+    const { content, sha } = await getTripsFile(env)
+    if (!content.health) content.health = { members: [], records: [], reminders: [] }
+    if (!content.health.records) content.health.records = []
+    const newRecord = {
+      id: `rec-${Date.now()}`,
+      date: new Date().toISOString().split('T')[0],
+      ...record,
+    }
+    content.health.records.push(newRecord)
+    await updateTripsFile(env, content, sha)
+    return json({ success: true, record: newRecord })
+  } catch (err) {
+    return json({ error: err.message }, 500)
+  }
+}
+
 // Add a comment to a news item (no auth, just site password baseline)
 async function handleComment(request, env) {
   if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
@@ -278,6 +354,8 @@ export default {
     if (url.pathname === '/api/ai-caption') return handleAiCaption(request, env)
     if (url.pathname === '/api/ai-summary') return handleAiSummary(request, env)
     if (url.pathname === '/api/comment') return handleComment(request, env)
+    if (url.pathname === '/api/health-chat') return handleHealthChat(request, env)
+    if (url.pathname === '/api/health-record') return handleHealthRecord(request, env)
 
     return env.ASSETS.fetch(request)
   },

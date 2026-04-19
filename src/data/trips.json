@@ -1,5 +1,18 @@
 {
   "password": "801172",
+  "health": {
+    "members": [
+      { "id": "yeye", "name": "爷爷", "relation": "爷爷", "avatar": "👴", "birthYear": 1955, "gender": "male", "conditions": [], "medications": [], "allergies": [], "notes": "" },
+      { "id": "nainai", "name": "奶奶", "relation": "奶奶", "avatar": "👵", "birthYear": 1956, "gender": "female", "conditions": [], "medications": [], "allergies": [], "notes": "" },
+      { "id": "waigong", "name": "外公", "relation": "外公", "avatar": "🧓", "birthYear": 1954, "gender": "male", "conditions": [], "medications": [], "allergies": [], "notes": "" },
+      { "id": "waipo", "name": "外婆", "relation": "外婆", "avatar": "🧕", "birthYear": 1955, "gender": "female", "conditions": [], "medications": [], "allergies": [], "notes": "" },
+      { "id": "baba", "name": "爸爸", "relation": "爸爸", "avatar": "👨", "birthYear": 1980, "gender": "male", "conditions": [], "medications": [], "allergies": [], "notes": "" },
+      { "id": "mama", "name": "妈妈", "relation": "妈妈", "avatar": "👩", "birthYear": 1982, "gender": "female", "conditions": [], "medications": [], "allergies": [], "notes": "" },
+      { "id": "wenwen", "name": "文文", "relation": "女儿", "avatar": "👧", "birthYear": 2012, "gender": "female", "conditions": [], "medications": [], "allergies": [], "notes": "" }
+    ],
+    "records": [],
+    "reminders": []
+  },
   "news": [
     {
       "id": "news-1776501318533",
