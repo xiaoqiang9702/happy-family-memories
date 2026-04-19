@@ -11,6 +11,7 @@ import NewsWeather from './components/NewsWeather'
 import AdminPage from './components/AdminPage'
 import BottomNav from './components/BottomNav'
 import PageTransition from './components/PageTransition'
+import HealthAlarm from './components/HealthAlarm'
 
 export default function App() {
   const { isAuthenticated, login } = useAuth()
@@ -39,6 +40,7 @@ export default function App() {
         </Routes>
       </PageTransition>
       <BottomNav />
+      <HealthAlarm />
     </>
   )
 }

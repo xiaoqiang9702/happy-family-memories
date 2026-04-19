@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppData, type FamilyMember } from '../hooks/useAppData'
+import { useDeviceOwner } from '../hooks/useDeviceOwner'
 
 function calcAge(birthYear: number): number {
   return new Date().getFullYear() - birthYear
@@ -16,6 +18,9 @@ export default function HealthManagement() {
   const navigate = useNavigate()
   const { health } = useAppData()
   const members = health.members
+  const { ownerId, setOwnerId, clearOwner } = useDeviceOwner()
+  const [showOwnerPicker, setShowOwnerPicker] = useState(false)
+  const deviceOwner = members.find((m) => m.id === ownerId)
 
   const elders = members.filter((m) => getMemberGroup(m) === 'elder')
   const adults = members.filter((m) => getMemberGroup(m) === 'adult')
@@ -97,6 +102,75 @@ export default function HealthManagement() {
             可以描述身体状况，AI 医生会根据档案给出建议
           </p>
         </div>
+
+        {/* device owner card */}
+        <div className="bg-white rounded-3xl p-4 shadow-soft">
+          {deviceOwner ? (
+            <div className="flex items-center gap-3">
+              <div className="text-4xl">{deviceOwner.avatar}</div>
+              <div className="flex-1">
+                <div className="text-sm text-warm-500">这是</div>
+                <div className="text-lg font-bold text-warm-800">
+                  {deviceOwner.name}的手机 <span className="text-sm font-normal text-amber-600">⏰ 提醒已开启</span>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowOwnerPicker(true)}
+                className="text-sm px-3 py-2 bg-warm-100 text-warm-700 rounded-xl min-h-[40px]"
+              >
+                更换
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowOwnerPicker(true)}
+              className="w-full py-3 bg-accent-blue/30 text-warm-800 text-base font-bold rounded-2xl active:bg-accent-blue/50"
+            >
+              🔔 设置这是谁的手机（开启闹钟提醒）
+            </button>
+          )}
+        </div>
+
+        {/* owner picker modal */}
+        {showOwnerPicker && (
+          <div className="fixed inset-0 z-40 bg-black/40 flex items-end sm:items-center justify-center p-4">
+            <div className="bg-white rounded-3xl w-full max-w-md max-h-[80vh] overflow-y-auto p-5">
+              <h3 className="text-lg font-bold text-warm-800 mb-3 text-center">这是谁的手机？</h3>
+              <p className="text-sm text-warm-500 text-center mb-4">选择后，只提醒这个人的事项</p>
+              <div className="space-y-2 mb-4">
+                {members.map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => { setOwnerId(m.id); setShowOwnerPicker(false) }}
+                    className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-colors ${
+                      ownerId === m.id ? 'bg-warm-500 text-white' : 'bg-warm-50 active:bg-warm-100 text-warm-800'
+                    }`}
+                  >
+                    <span className="text-3xl">{m.avatar}</span>
+                    <span className="flex-1 text-left text-lg font-bold">{m.name}</span>
+                    <span className="text-sm opacity-70">{m.relation}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                {ownerId && (
+                  <button
+                    onClick={() => { clearOwner(); setShowOwnerPicker(false) }}
+                    className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-2xl text-base"
+                  >
+                    关闭提醒
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowOwnerPicker(false)}
+                  className="flex-1 py-3 bg-warm-100 text-warm-700 rounded-2xl text-base"
+                >
+                  取消
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* elders */}
         {elders.length > 0 && (

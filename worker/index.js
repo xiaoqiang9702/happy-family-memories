@@ -1,5 +1,132 @@
 const GITHUB_API = 'https://api.github.com'
 
+// ============ AI PROVIDER ABSTRACTION ============
+// Priority: DashScope (Qwen) > DeepSeek > Cloudflare Workers AI fallback
+
+// Chat: takes messages array, returns { text }
+async function aiChat(env, messages, options = {}) {
+  const maxTokens = options.maxTokens || 500
+  const temperature = options.temperature ?? 0.7
+
+  // 1. Alibaba DashScope (Qwen) - best for Chinese
+  if (env.DASHSCOPE_API_KEY) {
+    const resp = await fetch(
+      'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${env.DASHSCOPE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: options.qwenModel || 'qwen-plus',
+          messages,
+          max_tokens: maxTokens,
+          temperature,
+        }),
+      }
+    )
+    if (resp.ok) {
+      const data = await resp.json()
+      return { text: data.choices?.[0]?.message?.content?.trim() || '', provider: 'qwen' }
+    }
+    const err = await resp.text()
+    throw new Error(`Qwen API error: ${err.slice(0, 200)}`)
+  }
+
+  // 2. DeepSeek (OpenAI-compatible)
+  if (env.DEEPSEEK_API_KEY) {
+    const resp = await fetch('https://api.deepseek.com/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${env.DEEPSEEK_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages,
+        max_tokens: maxTokens,
+        temperature,
+      }),
+    })
+    if (resp.ok) {
+      const data = await resp.json()
+      return { text: data.choices?.[0]?.message?.content?.trim() || '', provider: 'deepseek' }
+    }
+    const err = await resp.text()
+    throw new Error(`DeepSeek API error: ${err.slice(0, 200)}`)
+  }
+
+  // 3. Cloudflare Workers AI fallback
+  if (env.AI) {
+    const result = await env.AI.run('@cf/meta/llama-3-8b-instruct', {
+      messages,
+      max_tokens: maxTokens,
+    })
+    return { text: (result?.response || '').trim(), provider: 'cloudflare' }
+  }
+
+  throw new Error('未配置任何 AI 服务')
+}
+
+// Vision: takes base64 image + prompt, returns { text }
+async function aiVision(env, imageBase64, prompt, options = {}) {
+  const maxTokens = options.maxTokens || 400
+
+  // 1. Qwen-VL if DashScope configured
+  if (env.DASHSCOPE_API_KEY) {
+    const resp = await fetch(
+      'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${env.DASHSCOPE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: options.qwenVlModel || 'qwen-vl-plus',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}` } },
+                { type: 'text', text: prompt },
+              ],
+            },
+          ],
+          max_tokens: maxTokens,
+        }),
+      }
+    )
+    if (resp.ok) {
+      const data = await resp.json()
+      let content = data.choices?.[0]?.message?.content
+      if (Array.isArray(content)) content = content.map((c) => c.text || '').join('')
+      return { text: (content || '').trim(), provider: 'qwen-vl' }
+    }
+    const err = await resp.text()
+    throw new Error(`Qwen-VL error: ${err.slice(0, 200)}`)
+  }
+
+  // 2. Cloudflare LLaVA fallback (DeepSeek no vision)
+  if (env.AI) {
+    const binary = atob(imageBase64)
+    const bytes = new Uint8Array(binary.length)
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+
+    const result = await env.AI.run('@cf/llava-hf/llava-1.5-7b-hf', {
+      image: Array.from(bytes),
+      prompt,
+      max_tokens: maxTokens,
+    })
+    return { text: (result?.description || result?.response || '').trim(), provider: 'cloudflare-llava' }
+  }
+
+  throw new Error('未配置 AI 视觉服务')
+}
+// ============ END AI PROVIDER ============
+
+
 function ghHeaders(env) {
   return {
     Authorization: `Bearer ${env.GITHUB_TOKEN}`,
@@ -169,33 +296,21 @@ async function handleVerifyPassword(request, env) {
   }
 }
 
-// Generate a caption for a single photo using Workers AI
+// Generate a caption for a single photo
 async function handleAiCaption(request, env) {
   if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
   const password = request.headers.get('x-admin-password')
   if (password !== env.ADMIN_PASSWORD) return json({ error: '未授权' }, 401)
-  if (!env.AI) return json({ error: 'AI 服务未配置' }, 500)
 
   try {
     const { image } = await request.json()
     if (!image) return json({ error: '缺少图片数据' }, 400)
 
-    // decode base64 to bytes
-    const binary = atob(image)
-    const bytes = new Uint8Array(binary.length)
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+    const prompt = '用一句10-20字的中文简短描述这张照片的主要内容、场景或情绪。只回复中文描述，不要引号或其他内容。'
+    const { text } = await aiVision(env, image, prompt, { maxTokens: 80 })
 
-    const result = await env.AI.run('@cf/llava-hf/llava-1.5-7b-hf', {
-      image: Array.from(bytes),
-      prompt: 'Describe what you see in this photo in one short Chinese sentence, focused on the main subject, scene, or emotion. Reply ONLY in Chinese, 10-20 Chinese characters.',
-      max_tokens: 80,
-    })
-
-    let caption = (result?.description || result?.response || '').trim()
-    // clean up: remove quotes, english artifacts
-    caption = caption.replace(/^["'""]|["'""]$/g, '').trim()
+    let caption = text.replace(/^["'""]|["'""]$/g, '').trim()
     if (!caption) caption = '美好瞬间'
-
     return json({ caption })
   } catch (err) {
     return json({ error: err.message || 'AI 识别失败' }, 500)
@@ -207,7 +322,6 @@ async function handleAiSummary(request, env) {
   if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
   const password = request.headers.get('x-admin-password')
   if (password !== env.ADMIN_PASSWORD) return json({ error: '未授权' }, 401)
-  if (!env.AI) return json({ error: 'AI 服务未配置' }, 500)
 
   try {
     const { title, date, captions, existing } = await request.json()
@@ -223,15 +337,9 @@ async function handleAiSummary(request, env) {
 
 请直接写简介文字，不要加任何前缀或引号。`
 
-    const result = await env.AI.run('@cf/meta/llama-3-8b-instruct', {
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 300,
-    })
-
-    let summary = (result?.response || '').trim()
-    summary = summary.replace(/^["'""]|["'""]$/g, '').trim()
+    const { text } = await aiChat(env, [{ role: 'user', content: prompt }], { maxTokens: 300 })
+    let summary = text.replace(/^["'""]|["'""]$/g, '').trim()
     if (!summary) summary = `${title}，和家人一起度过的美好时光。`
-
     return json({ summary })
   } catch (err) {
     return json({ error: err.message || 'AI 生成失败' }, 500)
@@ -257,15 +365,10 @@ async function verifyFamilyPass(request, env) {
 async function handleAnalyzeReport(request, env) {
   if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
   if (!(await verifyFamilyPass(request, env))) return json({ error: '未授权' }, 401)
-  if (!env.AI) return json({ error: 'AI 服务未配置' }, 500)
 
   try {
     const { image, member } = await request.json()
     if (!image) return json({ error: '缺少图片' }, 400)
-
-    const binary = atob(image)
-    const bytes = new Uint8Array(binary.length)
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
 
     const age = member ? new Date().getFullYear() - (member.birthYear || 1980) : null
     const context = member
@@ -276,35 +379,25 @@ async function handleAnalyzeReport(request, env) {
         }`
       : ''
 
-    // First use LLaVA to describe the report image content in detail
-    const visionResult = await env.AI.run('@cf/llava-hf/llava-1.5-7b-hf', {
-      image: Array.from(bytes),
-      prompt: `This is a medical examination report. Please extract and list ALL the test items, values, and any numbers/data visible. Reply in Chinese with clear structure.`,
-      max_tokens: 400,
-    })
+    // Step 1: Vision extract report contents
+    const visionPrompt = '这是一份医疗检查报告。请仔细识别并列出报告上的所有检查项目、数值、单位、参考范围等信息。用中文清晰结构化输出，尽量完整。'
+    const { text: reportText } = await aiVision(env, image, visionPrompt, { maxTokens: 800 })
 
-    const reportText = (visionResult?.description || visionResult?.response || '').trim()
-
-    // Then use Llama-3 to analyze the extracted content
+    // Step 2: Text analysis
     const analysisPrompt = `你是一位温和的家庭医生助手。${context}
 
-以下是检查报告的内容（由图像识别提取）：
+以下是检查报告的内容（由图像识别提取，可能有识别错误）：
 ${reportText}
 
-请用温暖的中文（150-300字）给出解读和建议：
+请用温暖的中文（150-350字）给出解读和建议：
 1. 简要总结主要发现
-2. 哪些指标正常、哪些需要关注
-3. 基于${member ? member.name : '这位'}的情况给生活建议（饮食/运动/复查）
-4. 如果有需要立即就医的异常，明确提示
-避免专业术语，用老人容易理解的话。`
+2. 哪些指标正常、哪些需要关注（对比参考范围）
+3. 基于${member ? member.name : '这位'}的年龄、疾病史给具体生活建议（饮食/运动/复查）
+4. 如果有需要立即就医的明显异常，明确提示
+避免使用专业术语，用老人容易理解的话。`
 
-    const analysisResult = await env.AI.run('@cf/meta/llama-3-8b-instruct', {
-      messages: [{ role: 'user', content: analysisPrompt }],
-      max_tokens: 600,
-    })
-
-    const analysis = (analysisResult?.response || '').trim() || '抱歉，暂时无法分析这份报告。建议咨询医生。'
-    return json({ extracted: reportText, analysis })
+    const { text: analysis } = await aiChat(env, [{ role: 'user', content: analysisPrompt }], { maxTokens: 800 })
+    return json({ extracted: reportText, analysis: analysis || '抱歉，暂时无法分析这份报告，建议咨询医生。' })
   } catch (err) {
     return json({ error: err.message || '分析失败' }, 500)
   }
@@ -351,7 +444,6 @@ async function handleHealthUpdate(request, env) {
 async function handleHealthChat(request, env) {
   if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
   if (!(await verifyFamilyPass(request, env))) return json({ error: '未授权' }, 401)
-  if (!env.AI) return json({ error: 'AI 服务未配置' }, 500)
 
   try {
     const { member, message, history } = await request.json()
@@ -387,13 +479,8 @@ ${member.notes ? `- 其他：${member.notes}` : ''}
       { role: 'user', content: message },
     ]
 
-    const result = await env.AI.run('@cf/meta/llama-3-8b-instruct', {
-      messages,
-      max_tokens: 500,
-    })
-
-    const reply = (result?.response || '').trim() || '抱歉，我现在无法回答，请稍后再试。'
-    return json({ reply })
+    const { text } = await aiChat(env, messages, { maxTokens: 600 })
+    return json({ reply: text || '抱歉，我现在无法回答，请稍后再试。' })
   } catch (err) {
     return json({ error: err.message || 'AI 咨询失败' }, 500)
   }
