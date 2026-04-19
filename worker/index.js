@@ -238,9 +238,119 @@ async function handleAiSummary(request, env) {
   }
 }
 
+// Verify family password (from site password in trips.json)
+async function verifyFamilyPass(request, env) {
+  const pass =
+    request.headers.get('x-family-password') ||
+    request.headers.get('x-admin-password')
+  if (!pass) return false
+  try {
+    if (pass === env.ADMIN_PASSWORD) return true
+    const { content } = await getTripsFile(env)
+    return pass === content.password
+  } catch {
+    return false
+  }
+}
+
+// Analyze a check-up report image using AI vision
+async function handleAnalyzeReport(request, env) {
+  if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
+  if (!(await verifyFamilyPass(request, env))) return json({ error: '未授权' }, 401)
+  if (!env.AI) return json({ error: 'AI 服务未配置' }, 500)
+
+  try {
+    const { image, member } = await request.json()
+    if (!image) return json({ error: '缺少图片' }, 400)
+
+    const binary = atob(image)
+    const bytes = new Uint8Array(binary.length)
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+
+    const age = member ? new Date().getFullYear() - (member.birthYear || 1980) : null
+    const context = member
+      ? `这是${member.name}（${age}岁${member.gender === 'female' ? '女' : '男'}）的检查报告。${
+          member.conditions?.filter(Boolean).length > 0
+            ? `已知有${member.conditions.filter(Boolean).join('、')}。`
+            : ''
+        }`
+      : ''
+
+    // First use LLaVA to describe the report image content in detail
+    const visionResult = await env.AI.run('@cf/llava-hf/llava-1.5-7b-hf', {
+      image: Array.from(bytes),
+      prompt: `This is a medical examination report. Please extract and list ALL the test items, values, and any numbers/data visible. Reply in Chinese with clear structure.`,
+      max_tokens: 400,
+    })
+
+    const reportText = (visionResult?.description || visionResult?.response || '').trim()
+
+    // Then use Llama-3 to analyze the extracted content
+    const analysisPrompt = `你是一位温和的家庭医生助手。${context}
+
+以下是检查报告的内容（由图像识别提取）：
+${reportText}
+
+请用温暖的中文（150-300字）给出解读和建议：
+1. 简要总结主要发现
+2. 哪些指标正常、哪些需要关注
+3. 基于${member ? member.name : '这位'}的情况给生活建议（饮食/运动/复查）
+4. 如果有需要立即就医的异常，明确提示
+避免专业术语，用老人容易理解的话。`
+
+    const analysisResult = await env.AI.run('@cf/meta/llama-3-8b-instruct', {
+      messages: [{ role: 'user', content: analysisPrompt }],
+      max_tokens: 600,
+    })
+
+    const analysis = (analysisResult?.response || '').trim() || '抱歉，暂时无法分析这份报告。建议咨询医生。'
+    return json({ extracted: reportText, analysis })
+  } catch (err) {
+    return json({ error: err.message || '分析失败' }, 500)
+  }
+}
+
+// Update health data (records / reminders) - family-level auth
+async function handleHealthUpdate(request, env) {
+  if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
+  if (!(await verifyFamilyPass(request, env))) return json({ error: '未授权' }, 401)
+
+  try {
+    const { action, data } = await request.json()
+    const { content, sha } = await getTripsFile(env)
+    if (!content.health) content.health = { members: [], records: [], reminders: [] }
+    if (!content.health.records) content.health.records = []
+    if (!content.health.reminders) content.health.reminders = []
+
+    if (action === 'addRecord') {
+      const rec = { id: `rec-${Date.now()}`, date: new Date().toISOString().split('T')[0], ...data }
+      content.health.records.push(rec)
+    } else if (action === 'deleteRecord') {
+      content.health.records = content.health.records.filter((r) => r.id !== data.id)
+    } else if (action === 'addReminder') {
+      const rem = { id: `rem-${Date.now()}`, enabled: true, ...data }
+      content.health.reminders.push(rem)
+    } else if (action === 'updateReminder') {
+      content.health.reminders = content.health.reminders.map((r) =>
+        r.id === data.id ? { ...r, ...data } : r
+      )
+    } else if (action === 'deleteReminder') {
+      content.health.reminders = content.health.reminders.filter((r) => r.id !== data.id)
+    } else {
+      return json({ error: '未知操作' }, 400)
+    }
+
+    await updateTripsFile(env, content, sha)
+    return json({ success: true, health: content.health })
+  } catch (err) {
+    return json({ error: err.message }, 500)
+  }
+}
+
 // AI family doctor consultation
 async function handleHealthChat(request, env) {
   if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
+  if (!(await verifyFamilyPass(request, env))) return json({ error: '未授权' }, 401)
   if (!env.AI) return json({ error: 'AI 服务未配置' }, 500)
 
   try {
@@ -356,6 +466,8 @@ export default {
     if (url.pathname === '/api/comment') return handleComment(request, env)
     if (url.pathname === '/api/health-chat') return handleHealthChat(request, env)
     if (url.pathname === '/api/health-record') return handleHealthRecord(request, env)
+    if (url.pathname === '/api/health-update') return handleHealthUpdate(request, env)
+    if (url.pathname === '/api/analyze-report') return handleAnalyzeReport(request, env)
 
     return env.ASSETS.fetch(request)
   },

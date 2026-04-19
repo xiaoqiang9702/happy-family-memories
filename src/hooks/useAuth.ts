@@ -2,6 +2,11 @@ import { useState, useCallback } from 'react'
 import tripsData from '../data/trips.json'
 
 const STORAGE_KEY = 'family-auth'
+const PASS_KEY = 'family-pass'
+
+export function getFamilyPassword(): string {
+  return localStorage.getItem(PASS_KEY) || ''
+}
 
 export function useAuth() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -18,6 +23,7 @@ export function useAuth() {
       })
       if (resp.ok) {
         localStorage.setItem(STORAGE_KEY, 'true')
+        localStorage.setItem(PASS_KEY, password)
         setIsAuthenticated(true)
         return true
       }
@@ -29,6 +35,7 @@ export function useAuth() {
 
     if (password === tripsData.password) {
       localStorage.setItem(STORAGE_KEY, 'true')
+      localStorage.setItem(PASS_KEY, password)
       setIsAuthenticated(true)
       return true
     }
@@ -37,6 +44,7 @@ export function useAuth() {
 
   const logout = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY)
+    localStorage.removeItem(PASS_KEY)
     setIsAuthenticated(false)
   }, [])
 
