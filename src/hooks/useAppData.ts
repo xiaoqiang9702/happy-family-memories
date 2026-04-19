@@ -46,11 +46,18 @@ export interface HealthRecord {
   id: string
   memberId: string
   date: string            // YYYY-MM-DD
-  category: string        // 血压、血糖、体重、日志、检查报告...
+  category: string        // 就医 | 体检 | 检查报告 | 自述症状 | 血压 | 血糖 | 体重 | ...
   value: string           // 数值或描述
   notes: string
   aiAnalysis?: string     // AI 分析结果
-  imageUrl?: string       // 上传的检查报告照片
+  imageUrl?: string       // 上传的检查报告/处方照片
+  // Fields for medical visits / check-ups:
+  hospital?: string       // 医院
+  doctor?: string         // 医生
+  department?: string     // 科室
+  diagnosis?: string      // 诊断结论
+  treatment?: string      // 处理/开药
+  source?: 'admin' | 'self' | 'ai-chat'  // 录入来源
 }
 
 export interface HealthReminder {

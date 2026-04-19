@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { useAppData, type FamilyMember, type HealthData } from '../hooks/useAppData'
+import { useAppData, type FamilyMember, type HealthData, type HealthRecord } from '../hooks/useAppData'
 
 interface Photo {
   src: string
@@ -40,7 +40,7 @@ interface PendingUpload {
 
 const ADMIN_STORAGE_KEY = 'admin-auth'
 
-type View = 'list' | 'edit-trip' | 'news' | 'edit-news' | 'health' | 'edit-member'
+type View = 'list' | 'edit-trip' | 'news' | 'edit-news' | 'health' | 'edit-member' | 'member-records' | 'edit-record'
 
 export default function AdminPage() {
   const [password, setPassword] = useState('')
@@ -63,6 +63,9 @@ export default function AdminPage() {
   const [healthData, setHealthData] = useState<HealthData>(appData.health)
   const [editingMember, setEditingMember] = useState<FamilyMember | null>(null)
   const [isNewMember, setIsNewMember] = useState(false)
+  const [recordMemberId, setRecordMemberId] = useState<string>('')
+  const [editingRecord, setEditingRecord] = useState<HealthRecord | null>(null)
+  const [isNewRecord, setIsNewRecord] = useState(false)
 
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
@@ -613,6 +616,67 @@ export default function AdminPage() {
     await saveAll(trips, news, updated)
     setSaving(false)
     setView('health')
+  }
+
+  // === MEDICAL RECORDS MANAGEMENT ===
+
+  const openMemberRecords = (memberId: string) => {
+    setRecordMemberId(memberId)
+    setView('member-records')
+    setMessage('')
+  }
+
+  const startNewRecord = (category: '就医' | '体检') => {
+    setEditingRecord({
+      id: `rec-${Date.now()}`,
+      memberId: recordMemberId,
+      date: new Date().toISOString().split('T')[0],
+      category,
+      value: '',
+      notes: '',
+      hospital: '',
+      doctor: '',
+      department: '',
+      diagnosis: '',
+      treatment: '',
+      source: 'admin',
+    })
+    setIsNewRecord(true)
+    setView('edit-record')
+    setMessage('')
+  }
+
+  const startEditRecord = (rec: HealthRecord) => {
+    setEditingRecord({ ...rec })
+    setIsNewRecord(false)
+    setView('edit-record')
+    setMessage('')
+  }
+
+  const deleteAdminRecord = async (recId: string) => {
+    if (!confirm('确定删除这条记录？')) return
+    const updated: HealthData = {
+      ...healthData,
+      records: healthData.records.filter((r) => r.id !== recId),
+    }
+    setHealthData(updated)
+    await saveAll(trips, news, updated)
+  }
+
+  const saveAdminRecord = async () => {
+    if (!editingRecord || !editingRecord.date) {
+      setMessage('请填写日期')
+      return
+    }
+    setSaving(true)
+    const records = isNewRecord
+      ? [...healthData.records, editingRecord]
+      : healthData.records.map((r) => (r.id === editingRecord.id ? editingRecord : r))
+    const updated: HealthData = { ...healthData, records }
+    setHealthData(updated)
+    await saveAll(trips, news, updated)
+    setSaving(false)
+    setView('member-records')
   }
 
   // === NEWS MANAGEMENT ===
@@ -1187,6 +1251,245 @@ export default function AdminPage() {
     )
   }
 
+  // EDIT RECORD VIEW (medical visit / checkup)
+  if (view === 'edit-record' && editingRecord) {
+    const isVisit = editingRecord.category === '就医' || editingRecord.category === '体检'
+    return (
+      <div className="min-h-screen bg-warm-50 pb-8">
+        <header
+          className="sticky top-0 z-10 bg-warm-50/95 backdrop-blur-sm border-b border-warm-200 px-4 py-3"
+          style={{ paddingTop: 'calc(0.75rem + env(safe-area-inset-top))' }}
+        >
+          <div className="max-w-lg mx-auto flex items-center gap-3">
+            <button
+              onClick={() => setView('member-records')}
+              className="text-lg px-4 py-2 rounded-xl bg-warm-100 text-warm-700 font-medium min-h-[48px]"
+            >
+              ← 返回
+            </button>
+            <h1 className="text-xl font-bold text-warm-800">
+              {isNewRecord ? `添加${editingRecord.category}记录` : '编辑记录'}
+            </h1>
+          </div>
+        </header>
+
+        <div className="max-w-lg mx-auto px-4 pt-6 space-y-4">
+          <div>
+            <label className="block text-lg font-bold text-warm-700 mb-2">日期 *</label>
+            <input
+              type="date"
+              value={editingRecord.date}
+              onChange={(e) => setEditingRecord({ ...editingRecord, date: e.target.value })}
+              className="w-full text-lg px-4 py-3 rounded-2xl border-2 border-warm-200 bg-white outline-none focus:border-warm-500"
+            />
+          </div>
+
+          {isVisit && (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-bold text-warm-700 mb-1">医院</label>
+                  <input
+                    type="text"
+                    value={editingRecord.hospital || ''}
+                    onChange={(e) => setEditingRecord({ ...editingRecord, hospital: e.target.value })}
+                    placeholder="如 市一医院"
+                    className="w-full text-base px-4 py-2.5 rounded-2xl border-2 border-warm-200 bg-white outline-none focus:border-warm-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-warm-700 mb-1">科室</label>
+                  <input
+                    type="text"
+                    value={editingRecord.department || ''}
+                    onChange={(e) => setEditingRecord({ ...editingRecord, department: e.target.value })}
+                    placeholder="如 心内科"
+                    className="w-full text-base px-4 py-2.5 rounded-2xl border-2 border-warm-200 bg-white outline-none focus:border-warm-500"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-warm-700 mb-1">医生</label>
+                <input
+                  type="text"
+                  value={editingRecord.doctor || ''}
+                  onChange={(e) => setEditingRecord({ ...editingRecord, doctor: e.target.value })}
+                  placeholder="如 李主任"
+                  className="w-full text-base px-4 py-2.5 rounded-2xl border-2 border-warm-200 bg-white outline-none focus:border-warm-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-warm-700 mb-1">主诉症状</label>
+                <textarea
+                  value={editingRecord.value}
+                  onChange={(e) => setEditingRecord({ ...editingRecord, value: e.target.value })}
+                  placeholder="描述就医原因、症状等"
+                  rows={2}
+                  className="w-full text-base px-4 py-2.5 rounded-2xl border-2 border-warm-200 bg-white outline-none focus:border-warm-500 resize-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-warm-700 mb-1">诊断结论</label>
+                <textarea
+                  value={editingRecord.diagnosis || ''}
+                  onChange={(e) => setEditingRecord({ ...editingRecord, diagnosis: e.target.value })}
+                  placeholder="医生的诊断结果"
+                  rows={2}
+                  className="w-full text-base px-4 py-2.5 rounded-2xl border-2 border-warm-200 bg-white outline-none focus:border-warm-500 resize-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-warm-700 mb-1">处理/开药</label>
+                <textarea
+                  value={editingRecord.treatment || ''}
+                  onChange={(e) => setEditingRecord({ ...editingRecord, treatment: e.target.value })}
+                  placeholder="治疗方案、开的药物、注意事项等"
+                  rows={2}
+                  className="w-full text-base px-4 py-2.5 rounded-2xl border-2 border-warm-200 bg-white outline-none focus:border-warm-500 resize-none"
+                />
+              </div>
+            </>
+          )}
+
+          {!isVisit && (
+            <div>
+              <label className="block text-sm font-bold text-warm-700 mb-1">内容</label>
+              <textarea
+                value={editingRecord.value}
+                onChange={(e) => setEditingRecord({ ...editingRecord, value: e.target.value })}
+                rows={3}
+                className="w-full text-base px-4 py-2.5 rounded-2xl border-2 border-warm-200 bg-white outline-none focus:border-warm-500 resize-none"
+              />
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-bold text-warm-700 mb-1">备注</label>
+            <textarea
+              value={editingRecord.notes}
+              onChange={(e) => setEditingRecord({ ...editingRecord, notes: e.target.value })}
+              placeholder="其他要补充的信息"
+              rows={2}
+              className="w-full text-base px-4 py-2.5 rounded-2xl border-2 border-warm-200 bg-white outline-none focus:border-warm-500 resize-none"
+            />
+          </div>
+
+          {message && (
+            <div className="bg-warm-100 rounded-2xl p-4 text-center text-warm-700">{message}</div>
+          )}
+
+          <button
+            onClick={saveAdminRecord}
+            disabled={saving}
+            className="w-full py-4 bg-warm-500 disabled:bg-gray-300 text-white text-xl font-bold rounded-2xl"
+          >
+            {saving ? '保存中...' : '保存记录'}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // MEMBER RECORDS VIEW
+  if (view === 'member-records') {
+    const member = healthData.members.find((m) => m.id === recordMemberId)
+    const memberRecords = healthData.records
+      .filter((r) => r.memberId === recordMemberId)
+      .sort((a, b) => b.date.localeCompare(a.date))
+    return (
+      <div className="min-h-screen bg-warm-50 pb-8">
+        <header
+          className="sticky top-0 z-10 bg-warm-50/95 backdrop-blur-sm border-b border-warm-200 px-4 py-3"
+          style={{ paddingTop: 'calc(0.75rem + env(safe-area-inset-top))' }}
+        >
+          <div className="max-w-lg mx-auto flex items-center gap-3">
+            <button
+              onClick={() => setView('health')}
+              className="text-lg px-4 py-2 rounded-xl bg-warm-100 text-warm-700 font-medium min-h-[48px]"
+            >
+              ← 返回
+            </button>
+            <h1 className="text-xl font-bold text-warm-800">
+              {member?.avatar} {member?.name}的医疗记录
+            </h1>
+          </div>
+        </header>
+
+        <div className="max-w-lg mx-auto px-4 pt-6 space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => startNewRecord('就医')}
+              className="py-4 bg-warm-500 text-white text-lg font-bold rounded-2xl active:bg-warm-600"
+            >
+              🏥 添加就医
+            </button>
+            <button
+              onClick={() => startNewRecord('体检')}
+              className="py-4 bg-purple-400 text-white text-lg font-bold rounded-2xl active:bg-purple-500"
+            >
+              🔬 添加体检
+            </button>
+          </div>
+
+          {message && (
+            <div className="bg-warm-100 rounded-2xl p-4 text-center text-warm-700">{message}</div>
+          )}
+
+          <h2 className="text-lg font-bold text-warm-700">全部记录 ({memberRecords.length}条)</h2>
+
+          {memberRecords.length === 0 ? (
+            <div className="bg-white rounded-2xl p-8 text-center text-warm-500">
+              还没有记录<br />
+              <span className="text-sm text-warm-400 mt-2 block">点上方按钮添加第一条</span>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {memberRecords.map((r) => {
+                const isVisit = r.category === '就医' || r.category === '体检'
+                return (
+                  <div key={r.id} className="bg-white rounded-2xl p-4 shadow-soft">
+                    <div className="flex items-baseline gap-2 mb-1">
+                      <span className="text-sm text-warm-500">{r.date}</span>
+                      <span className="text-sm font-bold text-warm-700">{r.category}</span>
+                      {r.source === 'ai-chat' && <span className="text-xs text-warm-400">· AI记录</span>}
+                    </div>
+                    {isVisit ? (
+                      <div className="space-y-0.5 text-sm">
+                        {r.hospital && <div className="text-warm-700">🏥 {r.hospital}{r.department ? ` · ${r.department}` : ''}{r.doctor ? ` · ${r.doctor}` : ''}</div>}
+                        {r.value && <div className="text-warm-800">症状：{r.value}</div>}
+                        {r.diagnosis && <div className="text-warm-800">诊断：{r.diagnosis}</div>}
+                        {r.treatment && <div className="text-warm-800">处理：{r.treatment}</div>}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-warm-800 whitespace-pre-wrap line-clamp-3">{r.value}</div>
+                    )}
+                    {r.notes && <div className="text-xs text-warm-500 mt-1">备注：{r.notes}</div>}
+                    <div className="flex gap-2 mt-3">
+                      {(isVisit || r.source === 'admin') && (
+                        <button
+                          onClick={() => startEditRecord(r)}
+                          className="flex-1 px-3 py-2 bg-warm-100 text-warm-700 rounded-xl text-sm min-h-[40px]"
+                        >
+                          编辑
+                        </button>
+                      )}
+                      <button
+                        onClick={() => deleteAdminRecord(r.id)}
+                        className="flex-1 px-3 py-2 bg-red-50 text-red-500 rounded-xl text-sm min-h-[40px]"
+                      >
+                        删除
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   // HEALTH LIST VIEW
   if (view === 'health') {
     return (
@@ -1234,16 +1537,25 @@ export default function AdminPage() {
                       </p>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
                     <button
                       onClick={() => startEditMember(m)}
-                      className="flex-1 px-4 py-2 bg-warm-100 text-warm-700 rounded-xl text-base min-h-[48px]"
+                      className="flex-1 px-3 py-2 bg-warm-100 text-warm-700 rounded-xl text-sm min-h-[48px] font-medium"
                     >
                       编辑档案
                     </button>
                     <button
+                      onClick={() => openMemberRecords(m.id)}
+                      className="flex-1 px-3 py-2 bg-accent-blue/40 text-warm-800 rounded-xl text-sm min-h-[48px] font-medium"
+                    >
+                      📋 医疗记录 {(() => {
+                        const c = healthData.records.filter((r) => r.memberId === m.id).length
+                        return c > 0 ? `(${c})` : ''
+                      })()}
+                    </button>
+                    <button
                       onClick={() => deleteMember(m.id)}
-                      className="px-4 py-2 bg-red-50 text-red-500 rounded-xl text-base min-h-[48px]"
+                      className="px-3 py-2 bg-red-50 text-red-500 rounded-xl text-sm min-h-[48px]"
                     >
                       删除
                     </button>

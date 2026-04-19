@@ -67,6 +67,8 @@ export default function HealthMember() {
   const [remSaving, setRemSaving] = useState(false)
 
   const [message, setMessage] = useState('')
+  const [recordFilter, setRecordFilter] = useState<string>('all')
+  const [recordsToShow, setRecordsToShow] = useState(5)
 
   useEffect(() => {
     if (!id) return
@@ -117,10 +119,9 @@ export default function HealthMember() {
   })()
 
   const memberReminders = health.reminders.filter((r) => r.memberId === member.id)
-  const recentRecords = health.records
+  const allRecords = health.records
     .filter((r) => r.memberId === member.id)
     .sort((a, b) => (b.date + (b.id || '')).localeCompare(a.date + (a.id || '')))
-    .slice(0, 5)
 
   // === Voice input ===
 
@@ -174,7 +175,27 @@ export default function HealthMember() {
       })
       const data = await resp.json()
       if (!resp.ok) throw new Error(data.error || 'AI 无响应')
-      setChatHistory([...newHistory, { role: 'assistant', content: data.reply || '抱歉，无法回答', time: new Date().toISOString() }])
+      const reply = data.reply || '抱歉，无法回答'
+      setChatHistory([...newHistory, { role: 'assistant', content: reply, time: new Date().toISOString() }])
+
+      // auto-log this consultation as a health record for trend analysis
+      try {
+        fetch('/api/health-update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-family-password': familyPass },
+          body: JSON.stringify({
+            action: 'addRecord',
+            data: {
+              memberId: member.id,
+              category: '自述症状',
+              value: message,
+              notes: '',
+              aiAnalysis: reply,
+              source: 'ai-chat',
+            },
+          }),
+        }).then(() => refresh()).catch(() => {})
+      } catch {}
     } catch (err: any) {
       setChatHistory([...newHistory, { role: 'assistant', content: `抱歉出错了：${err.message}`, time: new Date().toISOString() }])
     } finally {
@@ -770,35 +791,130 @@ export default function HealthMember() {
           </div>
         )}
 
-        {/* recent records */}
-        {recentRecords.length > 0 && (
-          <div className="bg-white rounded-3xl p-5 shadow-soft">
-            <h3 className="text-lg font-bold text-warm-800 mb-3">📋 最近记录</h3>
-            <div className="space-y-3">
-              {recentRecords.map((r) => (
-                <div key={r.id} className="border-l-4 border-warm-300 pl-3 py-1 relative">
-                  <div className="text-sm text-warm-400">
-                    {new Date(r.date).toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })} · {r.category}
-                  </div>
-                  <div className="text-base text-warm-800 break-words">{r.value}</div>
-                  {r.notes && <div className="text-sm text-warm-600 mt-0.5">{r.notes}</div>}
-                  {r.aiAnalysis && (
-                    <details className="mt-1 text-sm">
-                      <summary className="text-warm-500 cursor-pointer">💡 AI 解读</summary>
-                      <p className="mt-1 text-warm-700 whitespace-pre-wrap">{r.aiAnalysis}</p>
-                    </details>
-                  )}
+        {/* all records with filter */}
+        {allRecords.length > 0 && (() => {
+          const filters = [
+            { id: 'all', label: '全部', count: allRecords.length },
+            { id: '就医', label: '🏥 就医' },
+            { id: '体检', label: '🔬 体检' },
+            { id: '检查报告', label: '📄 检查报告' },
+            { id: '自述症状', label: '💬 自述' },
+            { id: '数据', label: '📊 数据' },  // 血压、血糖等
+          ].map((f) => {
+            const count = f.id === 'all' ? allRecords.length
+              : f.id === '数据' ? allRecords.filter((r) => !['就医', '体检', '检查报告', '自述症状'].includes(r.category)).length
+              : allRecords.filter((r) => r.category === f.id).length
+            return { ...f, count }
+          })
+
+          const filtered = recordFilter === 'all' ? allRecords
+            : recordFilter === '数据' ? allRecords.filter((r) => !['就医', '体检', '检查报告', '自述症状'].includes(r.category))
+            : allRecords.filter((r) => r.category === recordFilter)
+
+          const visible = filtered.slice(0, recordsToShow)
+
+          return (
+            <div className="bg-white rounded-3xl p-5 shadow-soft">
+              <h3 className="text-lg font-bold text-warm-800 mb-3">📋 健康档案 <span className="text-base font-normal text-warm-500">({allRecords.length}条)</span></h3>
+
+              {/* filter tabs */}
+              <div className="flex gap-1.5 overflow-x-auto hide-scrollbar pb-2 mb-3 -mx-1 px-1">
+                {filters.filter((f) => f.count > 0).map((f) => (
                   <button
-                    onClick={() => deleteRecord(r.id)}
-                    className="absolute right-0 top-0 text-red-300 text-sm px-2"
+                    key={f.id}
+                    onClick={() => { setRecordFilter(f.id); setRecordsToShow(5) }}
+                    className={`shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                      recordFilter === f.id ? 'bg-warm-500 text-white' : 'bg-warm-50 text-warm-700 active:bg-warm-100'
+                    }`}
                   >
-                    ×
+                    {f.label} {f.count > 0 && <span className="opacity-70">({f.count})</span>}
                   </button>
-                </div>
-              ))}
+                ))}
+              </div>
+
+              <div className="space-y-4">
+                {visible.map((r) => {
+                  const isVisit = r.category === '就医' || r.category === '体检'
+                  const accentColor =
+                    r.category === '就医' ? 'border-red-300' :
+                    r.category === '体检' ? 'border-purple-300' :
+                    r.category === '检查报告' ? 'border-blue-300' :
+                    r.category === '自述症状' ? 'border-amber-300' :
+                    'border-warm-300'
+                  return (
+                    <div key={r.id} className={`border-l-4 ${accentColor} pl-3 py-1 relative`}>
+                      <div className="flex items-baseline gap-2 mb-1">
+                        <span className="text-sm text-warm-400">
+                          {new Date(r.date).toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })}
+                        </span>
+                        <span className="text-sm font-bold text-warm-700">{r.category}</span>
+                        {r.source === 'ai-chat' && <span className="text-xs text-warm-400">· AI记录</span>}
+                      </div>
+
+                      {isVisit ? (
+                        <div className="space-y-1 text-base">
+                          {r.hospital && (
+                            <div className="text-warm-700">
+                              <span className="text-warm-500">🏥 </span>
+                              {r.hospital}{r.department ? ` · ${r.department}` : ''}{r.doctor ? ` · ${r.doctor}医生` : ''}
+                            </div>
+                          )}
+                          {r.value && (
+                            <div className="text-warm-800"><span className="text-warm-500">症状：</span>{r.value}</div>
+                          )}
+                          {r.diagnosis && (
+                            <div className="text-warm-800"><span className="text-warm-500">诊断：</span>{r.diagnosis}</div>
+                          )}
+                          {r.treatment && (
+                            <div className="text-warm-800"><span className="text-warm-500">处理：</span>{r.treatment}</div>
+                          )}
+                          {r.notes && (
+                            <div className="text-sm text-warm-600">备注：{r.notes}</div>
+                          )}
+                        </div>
+                      ) : (
+                        <>
+                          <div className="text-base text-warm-800 break-words whitespace-pre-wrap">{r.value}</div>
+                          {r.notes && <div className="text-sm text-warm-600 mt-0.5">{r.notes}</div>}
+                        </>
+                      )}
+
+                      {r.imageUrl && (
+                        <a href={r.imageUrl} target="_blank" rel="noreferrer" className="inline-block mt-2">
+                          <img src={r.imageUrl} alt="" className="max-h-32 rounded-lg border border-warm-200" />
+                        </a>
+                      )}
+
+                      {r.aiAnalysis && (
+                        <details className="mt-1 text-sm">
+                          <summary className="text-warm-500 cursor-pointer">💡 AI 解读</summary>
+                          <p className="mt-1 text-warm-700 whitespace-pre-wrap">{r.aiAnalysis}</p>
+                        </details>
+                      )}
+
+                      <button
+                        onClick={() => deleteRecord(r.id)}
+                        className="absolute right-0 top-0 text-red-300 text-sm px-2"
+                        title="删除"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {filtered.length > visible.length && (
+                <button
+                  onClick={() => setRecordsToShow(recordsToShow + 10)}
+                  className="w-full mt-3 py-2 bg-warm-50 active:bg-warm-100 text-warm-600 text-sm rounded-xl"
+                >
+                  查看更多 ({filtered.length - visible.length})
+                </button>
+              )}
             </div>
-          </div>
-        )}
+          )
+        })()}
 
         <div className="text-center text-xs text-warm-400 px-4 pt-2">
           ⚠️ AI 建议仅供参考，严重症状请立即就医
